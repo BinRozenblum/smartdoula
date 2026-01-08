@@ -8,7 +8,7 @@ import NotFound from "./pages/NotFound";
 
 import AuthPage from "./pages/Auth"; // הוסף ייבוא
 
- 
+import InviteRegister from "./pages/InviteRegister";
 
 const queryClient = new QueryClient();
 
@@ -19,9 +19,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-         <Route path="/" element={<Index />} />
-  <Route path="/auth" element={<AuthPage />} /> {/* הוסף שורה זו */}
-  <Route path="*" element={<NotFound />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<AuthPage />} /> {/* הוסף שורה זו */}
+          <Route path="/invite" element={<InviteRegister />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
