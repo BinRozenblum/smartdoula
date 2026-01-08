@@ -1,0 +1,2042 @@
+--- Filename: postcss.config.js ---
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+
+---
+
+--- Filename: tsconfig.node.json ---
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["vite.config.ts"]
+}
+
+
+---
+
+--- Filename: data_context_step2.py ---
+import os
+import codecs
+
+# --- הגדרות ---
+ROOT_DIRECTORY = '.'  # תיקיית הפרויקט
+NAMES_FILENAME = 'file_names.txt'  # קובץ עם שמות הקבצים
+OUTPUT_FILENAME = 'filtered_project_context.txt'
+
+def main():
+    # ודא שתיקיית הבסיס קיימת
+    if not os.path.isdir(ROOT_DIRECTORY):
+        print(f"שגיאה: תיקיית הבסיס '{ROOT_DIRECTORY}' אינה קיימת או אינה תיקייה.")
+        return
+
+    # קבל נתיב אבסולוטי לקובץ הפלט
+    absolute_output_path = os.path.abspath(os.path.join(ROOT_DIRECTORY, OUTPUT_FILENAME))
+    absolute_names_path = os.path.abspath(os.path.join(ROOT_DIRECTORY, NAMES_FILENAME))
+
+    # בדוק אם קובץ השמות קיים
+    if not os.path.isfile(absolute_names_path):
+        print(f"שגיאה: קובץ השמות '{NAMES_FILENAME}' לא קיים.")
+        return
+
+    print(f"קורא שמות קבצים מקובץ: {absolute_names_path}")
+    print(f"כותב פלט לקובץ: {absolute_output_path}")
+
+    # פתח את קובץ הפלט לכתיבה ואת קובץ השמות לקריאה
+    try:
+        with codecs.open(absolute_names_path, 'r', encoding='utf-8') as namesfile, \
+             codecs.open(absolute_output_path, 'w', encoding='utf-8') as outfile:
+            # קרא את שמות הקבצים
+            file_paths = [line.strip() for line in namesfile if line.strip()]
+            
+            for relative_path in file_paths:
+                full_path = os.path.join(ROOT_DIRECTORY, relative_path)
+                
+                # בדוק אם הקובץ קיים
+                if not os.path.isfile(full_path):
+                    print(f"  [-] קובץ לא קיים: {relative_path}")
+                    continue
+                
+                try:
+                    # קרא את תוכן הקובץ
+                    with codecs.open(full_path, 'r', encoding='utf-8', errors='ignore') as infile:
+                        content = infile.read()
+                    
+                    # בדוק אם התוכן לא ריק
+                    if content.strip():
+                        print(f"  [+] מוסיף את הקובץ: {relative_path}")
+                        # כתוב לקובץ הפלט
+                        outfile.write(f"--- Filename: {relative_path} ---\n")
+                        outfile.write(content)
+                        outfile.write("\n\n---\n\n")
+                    else:
+                        print(f"  [-] מדלג על קובץ ריק: {relative_path}")
+                
+                except Exception as e:
+                    print(f"  [!] שגיאה בקריאת הקובץ {relative_path}: {e}")
+
+        print(f"\nהתהליך הושלם. התוכן נשמר בקובץ: {absolute_output_path}")
+
+    except IOError as e:
+        print(f"שגיאה בכתיבה לקבצים: {e}")
+    except Exception as e:
+        print(f"שגיאה לא צפויה: {e}")
+
+if __name__ == "__main__":
+    main()
+
+---
+
+--- Filename: vite.config.ts ---
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  server: {
+    host: "::",
+    port: 8080,
+  },
+  plugins: [react()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+}));
+
+
+---
+
+--- Filename: tailwind.config.ts ---
+import type { Config } from "tailwindcss";
+
+export default {
+  darkMode: ["class"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
+  prefix: "",
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      fontFamily: {
+        heebo: ["Heebo", "sans-serif"],
+      },
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        sage: {
+          DEFAULT: "hsl(var(--sage))",
+          light: "hsl(var(--sage-light))",
+        },
+        peach: {
+          DEFAULT: "hsl(var(--peach))",
+          light: "hsl(var(--peach-light))",
+        },
+        cream: "hsl(var(--cream))",
+        terracotta: "hsl(var(--terracotta))",
+        lavender: "hsl(var(--lavender))",
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-in": {
+          from: { opacity: "0", transform: "translateX(20px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" },
+        },
+        "scale-in": {
+          from: { transform: "scale(0.95)", opacity: "0" },
+          to: { transform: "scale(1)", opacity: "1" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.4s ease-out",
+        "slide-in": "slide-in 0.3s ease-out",
+        "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "scale-in": "scale-in 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+} satisfies Config;
+
+
+---
+
+--- Filename: eslint.config.js ---
+import js from "@eslint/js";
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+import tseslint from "typescript-eslint";
+
+export default tseslint.config(
+  { ignores: ["dist"] },
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+    plugins: {
+      "react-hooks": reactHooks,
+      "react-refresh": reactRefresh,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
+);
+
+
+---
+
+--- Filename: package.json ---
+{
+  "name": "vite_react_shadcn_ts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:dev": "vite build --mode development",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
+    "@radix-ui/react-accordion": "^1.2.11",
+    "@radix-ui/react-alert-dialog": "^1.1.14",
+    "@radix-ui/react-aspect-ratio": "^1.1.7",
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-checkbox": "^1.3.2",
+    "@radix-ui/react-collapsible": "^1.1.11",
+    "@radix-ui/react-context-menu": "^2.2.15",
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-dropdown-menu": "^2.1.15",
+    "@radix-ui/react-hover-card": "^1.1.14",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-menubar": "^1.1.15",
+    "@radix-ui/react-navigation-menu": "^1.2.13",
+    "@radix-ui/react-popover": "^1.1.14",
+    "@radix-ui/react-progress": "^1.1.7",
+    "@radix-ui/react-radio-group": "^1.3.7",
+    "@radix-ui/react-scroll-area": "^1.2.9",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-separator": "^1.1.7",
+    "@radix-ui/react-slider": "^1.3.5",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.5",
+    "@radix-ui/react-tabs": "^1.1.12",
+    "@radix-ui/react-toast": "^1.2.14",
+    "@radix-ui/react-toggle": "^1.1.9",
+    "@radix-ui/react-toggle-group": "^1.1.10",
+    "@radix-ui/react-tooltip": "^1.2.7",
+    "@tanstack/react-query": "^5.83.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^3.6.0",
+    "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.24.11",
+    "input-otp": "^1.4.2",
+    "lucide-react": "^0.462.0",
+    "next-themes": "^0.3.0",
+    "react": "^18.3.1",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.61.1",
+    "react-resizable-panels": "^2.1.9",
+    "react-router-dom": "^6.30.1",
+    "recharts": "^2.15.4",
+    "sonner": "^1.7.4",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7",
+    "vaul": "^0.9.9",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^22.16.5",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react-swc": "^3.11.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.32.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^15.15.0",
+    "lovable-tagger": "^1.1.13",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0",
+    "vite": "^5.4.19"
+  }
+}
+
+
+---
+
+--- Filename: index.html ---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- TODO: Set the document title to the name of your application -->
+    <title>Lovable App</title>
+    <meta name="description" content="Lovable Generated Project" />
+    <meta name="author" content="Lovable" />
+
+    <!-- TODO: Update og:title to match your application name -->
+    <meta property="og:title" content="Lovable App" />
+    <meta property="og:description" content="Lovable Generated Project" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@Lovable" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
+
+---
+
+--- Filename: tsconfig.json ---
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "skipLibCheck": true,
+    "strictNullChecks": false
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}
+
+---
+
+--- Filename: tsconfig.app.json ---
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "noFallthroughCasesInSwitch": false,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "skipLibCheck": true,
+    "strict": false,
+    "target": "ES2020",
+    "useDefineForClassFields": true
+  },
+  "include": [
+    "src"
+  ]
+}
+
+---
+
+--- Filename: components.json ---
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.ts",
+    "css": "src/index.css",
+    "baseColor": "slate",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  }
+}
+
+
+---
+
+--- Filename: src/vite-env.d.ts ---
+/// <reference types="vite/client" />
+
+
+---
+
+--- Filename: src/main.tsx ---
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+
+createRoot(document.getElementById("root")!).render(<App />);
+
+
+---
+
+--- Filename: src/index.css ---
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Warm, nurturing palette for doula app */
+    --background: 30 50% 98%;
+    --foreground: 20 20% 20%;
+
+    --card: 30 40% 99%;
+    --card-foreground: 20 20% 20%;
+
+    --popover: 30 40% 99%;
+    --popover-foreground: 20 20% 20%;
+
+    /* Soft peach/rose primary */
+    --primary: 12 80% 70%;
+    --primary-foreground: 30 50% 98%;
+
+    /* Sage green secondary */
+    --secondary: 150 25% 75%;
+    --secondary-foreground: 150 30% 25%;
+
+    /* Warm cream muted */
+    --muted: 30 30% 94%;
+    --muted-foreground: 20 15% 50%;
+
+    /* Soft coral accent */
+    --accent: 20 70% 85%;
+    --accent-foreground: 20 40% 30%;
+
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 25% 88%;
+    --input: 30 25% 88%;
+    --ring: 12 80% 70%;
+
+    --radius: 1rem;
+
+    /* Custom colors */
+    --sage: 150 25% 65%;
+    --sage-light: 150 25% 92%;
+    --peach: 20 85% 75%;
+    --peach-light: 20 85% 94%;
+    --cream: 40 40% 96%;
+    --terracotta: 15 60% 55%;
+    --lavender: 270 30% 85%;
+
+    /* Gradients */
+    --gradient-warm: linear-gradient(135deg, hsl(12 80% 70%) 0%, hsl(20 85% 75%) 100%);
+    --gradient-sage: linear-gradient(135deg, hsl(150 25% 65%) 0%, hsl(160 30% 75%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(30 50% 98%) 0%, hsl(30 40% 95%) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(20 20% 20% / 0.08);
+    --shadow-card: 0 2px 12px -2px hsl(20 20% 20% / 0.06);
+    --shadow-hover: 0 8px 30px -8px hsl(20 20% 20% / 0.12);
+
+    --sidebar-background: 30 35% 97%;
+    --sidebar-foreground: 20 20% 30%;
+    --sidebar-primary: 12 80% 70%;
+    --sidebar-primary-foreground: 30 50% 98%;
+    --sidebar-accent: 20 70% 90%;
+    --sidebar-accent-foreground: 20 40% 30%;
+    --sidebar-border: 30 25% 90%;
+    --sidebar-ring: 12 80% 70%;
+  }
+
+  .dark {
+    --background: 20 20% 10%;
+    --foreground: 30 30% 95%;
+
+    --card: 20 18% 14%;
+    --card-foreground: 30 30% 95%;
+
+    --popover: 20 18% 14%;
+    --popover-foreground: 30 30% 95%;
+
+    --primary: 12 70% 65%;
+    --primary-foreground: 20 20% 10%;
+
+    --secondary: 150 20% 30%;
+    --secondary-foreground: 150 25% 90%;
+
+    --muted: 20 15% 20%;
+    --muted-foreground: 30 20% 65%;
+
+    --accent: 20 50% 25%;
+    --accent-foreground: 20 70% 90%;
+
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 20 15% 22%;
+    --input: 20 15% 22%;
+    --ring: 12 70% 65%;
+
+    --sidebar-background: 20 18% 12%;
+    --sidebar-foreground: 30 30% 90%;
+    --sidebar-primary: 12 70% 65%;
+    --sidebar-primary-foreground: 20 20% 10%;
+    --sidebar-accent: 20 40% 20%;
+    --sidebar-accent-foreground: 20 70% 90%;
+    --sidebar-border: 20 15% 20%;
+    --sidebar-ring: 12 70% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    direction: rtl;
+  }
+
+  body {
+    @apply bg-background text-foreground font-heebo antialiased;
+  }
+}
+
+@layer utilities {
+  .gradient-warm {
+    background: var(--gradient-warm);
+  }
+
+  .gradient-sage {
+    background: var(--gradient-sage);
+  }
+
+  .gradient-subtle {
+    background: var(--gradient-subtle);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-hover {
+    box-shadow: var(--shadow-hover);
+  }
+
+  .glass {
+    @apply bg-card/80 backdrop-blur-md;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background: var(--gradient-warm);
+  }
+}
+
+
+---
+
+--- Filename: src/App.css ---
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+
+---
+
+--- Filename: src/App.tsx ---
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+
+export default App;
+
+
+---
+
+--- Filename: src/types/index.tsx ---
+//todo
+
+---
+
+--- Filename: src/pages/Index.tsx ---
+import { useState } from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { ClientCard } from "@/components/dashboard/ClientCard";
+import { ContractionTimer } from "@/components/dashboard/ContractionTimer";
+import { WeeklyProgress } from "@/components/dashboard/WeeklyProgress";
+import { UpcomingEvents } from "@/components/dashboard/UpcomingEvents";
+import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
+import { Users, Baby, Calendar, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const mockClients = [
+  {
+    name: "שירה לוי",
+    week: 38,
+    dueDate: "15.01.2026",
+    location: "תל אביב - איכילוב",
+    status: "urgent" as const,
+    lastUpdate: "לפני 10 דקות",
+  },
+  {
+    name: "נועה כהן",
+    week: 32,
+    dueDate: "01.03.2026",
+    location: "ירושלים - הדסה",
+    status: "active" as const,
+    lastUpdate: "היום, 09:30",
+  },
+  {
+    name: "מיכל ברק",
+    week: 36,
+    dueDate: "25.01.2026",
+    location: "רמת גן - שיבא",
+    status: "approaching" as const,
+    lastUpdate: "אתמול",
+  },
+  {
+    name: "דנה אברהם",
+    week: 28,
+    dueDate: "15.03.2026",
+    location: "חיפה - רמב״ם",
+    status: "active" as const,
+    lastUpdate: "לפני 3 ימים",
+  },
+];
+
+const Index = () => {
+  const [activeNav, setActiveNav] = useState("/");
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar activeItem={activeNav} onNavigate={setActiveNav} />
+
+      {/* Main Content */}
+      <main className="mr-64 min-h-screen">
+        {/* Header */}
+        <header className="sticky top-0 z-10 glass border-b border-border/50 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                שלום, מירב 👋
+              </h1>
+              <p className="text-muted-foreground">הנה הסקירה היומית שלך</p>
+            </div>
+            <Button variant="warm" size="lg">
+              + יולדת חדשה
+            </Button>
+          </div>
+        </header>
+
+        {/* Dashboard Content */}
+        <div className="p-8 space-y-8">
+          {/* Stats Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatsCard
+              title="יולדות פעילות"
+              value={12}
+              subtitle="2 מתקרבות ללידה"
+              icon={Users}
+              variant="warm"
+            />
+            <StatsCard
+              title="לידות החודש"
+              value={3}
+              subtitle="2 הצלחות, 1 בתהליך"
+              icon={Baby}
+              variant="sage"
+              trend={{ value: 15, isPositive: true }}
+            />
+            <StatsCard
+              title="פגישות השבוע"
+              value={8}
+              subtitle="3 היום"
+              icon={Calendar}
+              variant="default"
+            />
+            <StatsCard
+              title="ממתינות לתשומת לב"
+              value={2}
+              subtitle="דורשות מעקב"
+              icon={Clock}
+              variant="accent"
+            />
+          </div>
+
+          {/* Main Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Clients List */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-foreground">
+                  היולדות שלי
+                </h2>
+                <Button variant="ghost">הצג הכל</Button>
+              </div>
+              <div className="grid gap-4">
+                {mockClients.map((client) => (
+                  <ClientCard key={client.name} {...client} />
+                ))}
+              </div>
+            </div>
+
+            {/* Sidebar Widgets */}
+            <div className="space-y-6">
+              <AlertsWidget />
+              <ContractionTimer />
+            </div>
+          </div>
+
+          {/* Bottom Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <WeeklyProgress currentWeek={38} />
+            <UpcomingEvents />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Index;
+
+
+---
+
+--- Filename: src/pages/NotFound.tsx ---
+import { useLocation } from "react-router-dom";
+import { useEffect } from "react";
+
+const NotFound = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+  }, [location.pathname]);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+      <div className="text-center">
+        <h1 className="mb-4 text-4xl font-bold">404</h1>
+        <p className="mb-4 text-xl text-gray-600">Oops! Page not found</p>
+        <a href="/" className="text-blue-500 underline hover:text-blue-700">
+          Return to Home
+        </a>
+      </div>
+    </div>
+  );
+};
+
+export default NotFound;
+
+
+---
+
+--- Filename: src/hooks/use-toast.ts ---
+import * as React from "react";
+
+import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
+
+const TOAST_LIMIT = 1;
+const TOAST_REMOVE_DELAY = 1000000;
+
+type ToasterToast = ToastProps & {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: ToastActionElement;
+};
+
+const actionTypes = {
+  ADD_TOAST: "ADD_TOAST",
+  UPDATE_TOAST: "UPDATE_TOAST",
+  DISMISS_TOAST: "DISMISS_TOAST",
+  REMOVE_TOAST: "REMOVE_TOAST",
+} as const;
+
+let count = 0;
+
+function genId() {
+  count = (count + 1) % Number.MAX_SAFE_INTEGER;
+  return count.toString();
+}
+
+type ActionType = typeof actionTypes;
+
+type Action =
+  | {
+      type: ActionType["ADD_TOAST"];
+      toast: ToasterToast;
+    }
+  | {
+      type: ActionType["UPDATE_TOAST"];
+      toast: Partial<ToasterToast>;
+    }
+  | {
+      type: ActionType["DISMISS_TOAST"];
+      toastId?: ToasterToast["id"];
+    }
+  | {
+      type: ActionType["REMOVE_TOAST"];
+      toastId?: ToasterToast["id"];
+    };
+
+interface State {
+  toasts: ToasterToast[];
+}
+
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+const addToRemoveQueue = (toastId: string) => {
+  if (toastTimeouts.has(toastId)) {
+    return;
+  }
+
+  const timeout = setTimeout(() => {
+    toastTimeouts.delete(toastId);
+    dispatch({
+      type: "REMOVE_TOAST",
+      toastId: toastId,
+    });
+  }, TOAST_REMOVE_DELAY);
+
+  toastTimeouts.set(toastId, timeout);
+};
+
+export const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case "ADD_TOAST":
+      return {
+        ...state,
+        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+      };
+
+    case "UPDATE_TOAST":
+      return {
+        ...state,
+        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
+      };
+
+    case "DISMISS_TOAST": {
+      const { toastId } = action;
+
+      // ! Side effects ! - This could be extracted into a dismissToast() action,
+      // but I'll keep it here for simplicity
+      if (toastId) {
+        addToRemoveQueue(toastId);
+      } else {
+        state.toasts.forEach((toast) => {
+          addToRemoveQueue(toast.id);
+        });
+      }
+
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === toastId || toastId === undefined
+            ? {
+                ...t,
+                open: false,
+              }
+            : t,
+        ),
+      };
+    }
+    case "REMOVE_TOAST":
+      if (action.toastId === undefined) {
+        return {
+          ...state,
+          toasts: [],
+        };
+      }
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+      };
+  }
+};
+
+const listeners: Array<(state: State) => void> = [];
+
+let memoryState: State = { toasts: [] };
+
+function dispatch(action: Action) {
+  memoryState = reducer(memoryState, action);
+  listeners.forEach((listener) => {
+    listener(memoryState);
+  });
+}
+
+type Toast = Omit<ToasterToast, "id">;
+
+function toast({ ...props }: Toast) {
+  const id = genId();
+
+  const update = (props: ToasterToast) =>
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: { ...props, id },
+    });
+  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
+
+  dispatch({
+    type: "ADD_TOAST",
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss();
+      },
+    },
+  });
+
+  return {
+    id: id,
+    dismiss,
+    update,
+  };
+}
+
+function useToast() {
+  const [state, setState] = React.useState<State>(memoryState);
+
+  React.useEffect(() => {
+    listeners.push(setState);
+    return () => {
+      const index = listeners.indexOf(setState);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    };
+  }, [state]);
+
+  return {
+    ...state,
+    toast,
+    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+  };
+}
+
+export { useToast, toast };
+
+
+---
+
+--- Filename: src/hooks/use-mobile.tsx ---
+import * as React from "react";
+
+const MOBILE_BREAKPOINT = 768;
+
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
+
+  React.useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const onChange = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    mql.addEventListener("change", onChange);
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return !!isMobile;
+}
+
+
+---
+
+--- Filename: src/components/NavLink.tsx ---
+import { NavLink as RouterNavLink, NavLinkProps } from "react-router-dom";
+import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+interface NavLinkCompatProps extends Omit<NavLinkProps, "className"> {
+  className?: string;
+  activeClassName?: string;
+  pendingClassName?: string;
+}
+
+const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
+  ({ className, activeClassName, pendingClassName, to, ...props }, ref) => {
+    return (
+      <RouterNavLink
+        ref={ref}
+        to={to}
+        className={({ isActive, isPending }) =>
+          cn(className, isActive && activeClassName, isPending && pendingClassName)
+        }
+        {...props}
+      />
+    );
+  },
+);
+
+NavLink.displayName = "NavLink";
+
+export { NavLink };
+
+
+---
+
+--- Filename: src/components/dashboard/AlertsWidget.tsx ---
+import { AlertTriangle, Info, CheckCircle, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+
+interface Alert {
+  id: string;
+  type: "urgent" | "warning" | "info" | "success";
+  title: string;
+  message: string;
+  time: string;
+}
+
+const initialAlerts: Alert[] = [
+  {
+    id: "1",
+    type: "urgent",
+    title: "שירה לוי - צירים",
+    message: "דווח על צירים סדירים כל 5 דקות",
+    time: "לפני 10 דקות",
+  },
+  {
+    id: "2",
+    type: "warning",
+    title: "נועה כהן - שבוע 39",
+    message: "מתקרבת לתאריך הלידה המשוער",
+    time: "לפני שעה",
+  },
+  {
+    id: "3",
+    type: "info",
+    title: "פגישה בעוד שעתיים",
+    message: "פגישת היכרות עם לקוחה חדשה",
+    time: "לפני שעתיים",
+  },
+];
+
+const alertConfig = {
+  urgent: {
+    bg: "bg-destructive/10 border-destructive/30",
+    icon: AlertTriangle,
+    iconColor: "text-destructive",
+  },
+  warning: {
+    bg: "bg-peach-light border-peach/50",
+    icon: AlertTriangle,
+    iconColor: "text-terracotta",
+  },
+  info: {
+    bg: "bg-sage-light border-sage/50",
+    icon: Info,
+    iconColor: "text-secondary-foreground",
+  },
+  success: {
+    bg: "bg-sage-light border-sage",
+    icon: CheckCircle,
+    iconColor: "text-secondary-foreground",
+  },
+};
+
+export function AlertsWidget() {
+  const [alerts, setAlerts] = useState(initialAlerts);
+
+  const dismissAlert = (id: string) => {
+    setAlerts((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  return (
+    <div className="bg-card rounded-2xl p-6 shadow-card animate-fade-in">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground">התראות</h2>
+          {alerts.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium">
+              {alerts.length}
+            </span>
+          )}
+        </div>
+        {alerts.length > 0 && (
+          <button 
+            className="text-sm text-muted-foreground hover:text-foreground"
+            onClick={() => setAlerts([])}
+          >
+            נקה הכל
+          </button>
+        )}
+      </div>
+
+      {alerts.length === 0 ? (
+        <div className="text-center py-8">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-sage-light flex items-center justify-center">
+            <CheckCircle className="w-6 h-6 text-secondary-foreground" />
+          </div>
+          <p className="text-muted-foreground">אין התראות חדשות</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {alerts.map((alert) => {
+            const config = alertConfig[alert.type];
+            const Icon = config.icon;
+            return (
+              <div
+                key={alert.id}
+                className={cn(
+                  "flex items-start gap-3 p-4 rounded-xl border transition-all",
+                  config.bg
+                )}
+              >
+                <Icon className={cn("w-5 h-5 flex-shrink-0 mt-0.5", config.iconColor)} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground text-sm">{alert.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{alert.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{alert.time}</p>
+                </div>
+                <button
+                  onClick={() => dismissAlert(alert.id)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+---
+
+--- Filename: src/components/dashboard/ClientCard.tsx ---
+import { Calendar, MapPin, Clock, ChevronLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
+interface ClientCardProps {
+  name: string;
+  week: number;
+  dueDate: string;
+  location: string;
+  status: "active" | "approaching" | "urgent";
+  avatar?: string;
+  lastUpdate?: string;
+  onClick?: () => void;
+}
+
+export function ClientCard({
+  name,
+  week,
+  dueDate,
+  location,
+  status,
+  lastUpdate,
+  onClick,
+}: ClientCardProps) {
+  const statusConfig = {
+    active: {
+      bg: "bg-sage-light",
+      text: "text-secondary-foreground",
+      label: "פעילה",
+      ring: "ring-sage",
+    },
+    approaching: {
+      bg: "bg-peach-light",
+      text: "text-terracotta",
+      label: "מתקרבת ללידה",
+      ring: "ring-peach",
+    },
+    urgent: {
+      bg: "bg-destructive/10",
+      text: "text-destructive",
+      label: "דחוף",
+      ring: "ring-destructive",
+    },
+  };
+
+  const config = statusConfig[status];
+
+  return (
+    <div 
+      className={cn(
+        "bg-card rounded-2xl p-5 shadow-card transition-all duration-300 hover:shadow-hover cursor-pointer group animate-fade-in",
+        "border-r-4",
+        status === "active" && "border-r-sage",
+        status === "approaching" && "border-r-peach",
+        status === "urgent" && "border-r-destructive"
+      )}
+      onClick={onClick}
+    >
+      <div className="flex items-start gap-4">
+        {/* Avatar */}
+        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+          <span className="text-lg font-semibold text-foreground">
+            {name.split(" ").map(n => n[0]).join("")}
+          </span>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <h3 className="font-semibold text-foreground truncate">{name}</h3>
+            <span className={cn(
+              "px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0",
+              config.bg,
+              config.text
+            )}>
+              {config.label}
+            </span>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span className="font-medium text-primary">שבוע {week}</span>
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" />
+                {dueDate}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <MapPin className="w-3.5 h-3.5" />
+              {location}
+            </div>
+            {lastUpdate && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                עדכון אחרון: {lastUpdate}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Arrow */}
+        <ChevronLeft className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+      </div>
+    </div>
+  );
+}
+
+
+---
+
+--- Filename: src/components/dashboard/ContractionTimer.tsx ---
+import { useState, useEffect, useRef } from "react";
+import { Play, Pause, RotateCcw, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+interface Contraction {
+  id: number;
+  duration: number;
+  interval: number;
+  timestamp: Date;
+}
+
+export function ContractionTimer() {
+  const [isRunning, setIsRunning] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [contractions, setContractions] = useState<Contraction[]>([]);
+  const lastContraction = useRef<Date | null>(null);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning) {
+      interval = setInterval(() => {
+        setSeconds((s) => s + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning]);
+
+  const formatTime = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleToggle = () => {
+    if (isRunning) {
+      // Stopping - record the contraction
+      const now = new Date();
+      const interval = lastContraction.current
+        ? Math.floor((now.getTime() - lastContraction.current.getTime()) / 1000)
+        : 0;
+      
+      setContractions((prev) => [
+        {
+          id: Date.now(),
+          duration: seconds,
+          interval,
+          timestamp: now,
+        },
+        ...prev.slice(0, 9), // Keep last 10
+      ]);
+      
+      lastContraction.current = now;
+      setSeconds(0);
+    }
+    setIsRunning(!isRunning);
+  };
+
+  const handleReset = () => {
+    setIsRunning(false);
+    setSeconds(0);
+    setContractions([]);
+    lastContraction.current = null;
+  };
+
+  const avgDuration = contractions.length
+    ? Math.round(contractions.reduce((a, c) => a + c.duration, 0) / contractions.length)
+    : 0;
+  
+  const avgInterval = contractions.filter((c) => c.interval > 0).length
+    ? Math.round(
+        contractions.filter((c) => c.interval > 0).reduce((a, c) => a + c.interval, 0) /
+        contractions.filter((c) => c.interval > 0).length
+      )
+    : 0;
+
+  return (
+    <div className="bg-card rounded-2xl p-6 shadow-card animate-fade-in">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold text-foreground">תזמון צירים</h2>
+        <Button variant="ghost" size="icon" onClick={handleReset}>
+          <RotateCcw className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Timer Display */}
+      <div className="text-center mb-6">
+        <div className={cn(
+          "w-40 h-40 mx-auto rounded-full flex items-center justify-center mb-4 transition-all duration-300",
+          isRunning 
+            ? "gradient-warm animate-pulse-soft shadow-hover" 
+            : "bg-muted"
+        )}>
+          <span className={cn(
+            "text-4xl font-bold font-mono",
+            isRunning ? "text-primary-foreground" : "text-foreground"
+          )}>
+            {formatTime(seconds)}
+          </span>
+        </div>
+        
+        <Button
+          variant={isRunning ? "destructive" : "warm"}
+          size="lg"
+          className="w-40"
+          onClick={handleToggle}
+        >
+          {isRunning ? (
+            <>
+              <Pause className="w-5 h-5" />
+              עצירה
+            </>
+          ) : (
+            <>
+              <Play className="w-5 h-5" />
+              התחלה
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Stats */}
+      {contractions.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-sage-light rounded-xl p-4 text-center">
+            <p className="text-xs text-muted-foreground mb-1">משך ממוצע</p>
+            <p className="text-2xl font-bold text-secondary-foreground">{formatTime(avgDuration)}</p>
+          </div>
+          <div className="bg-peach-light rounded-xl p-4 text-center">
+            <p className="text-xs text-muted-foreground mb-1">מרווח ממוצע</p>
+            <p className="text-2xl font-bold text-terracotta">{formatTime(avgInterval)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* History */}
+      {contractions.length > 0 && (
+        <div className="space-y-2 max-h-48 overflow-y-auto">
+          <p className="text-xs font-medium text-muted-foreground mb-2">היסטוריה</p>
+          {contractions.map((c, i) => (
+            <div
+              key={c.id}
+              className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm"
+            >
+              <span className="text-muted-foreground">צייר #{contractions.length - i}</span>
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1 text-foreground">
+                  <Clock className="w-3 h-3" />
+                  {formatTime(c.duration)}
+                </span>
+                {c.interval > 0 && (
+                  <span className="text-muted-foreground text-xs">
+                    מרווח: {formatTime(c.interval)}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+---
+
+--- Filename: src/components/dashboard/UpcomingEvents.tsx ---
+import { Calendar, Clock, User } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface Event {
+  id: string;
+  title: string;
+  client: string;
+  date: string;
+  time: string;
+  type: "meeting" | "checkup" | "birth" | "reminder";
+}
+
+const events: Event[] = [
+  {
+    id: "1",
+    title: "פגישת היכרות",
+    client: "נועה כהן",
+    date: "היום",
+    time: "14:00",
+    type: "meeting",
+  },
+  {
+    id: "2",
+    title: "בדיקת מעקב שבועית",
+    client: "שירה לוי",
+    date: "מחר",
+    time: "10:30",
+    type: "checkup",
+  },
+  {
+    id: "3",
+    title: "תאריך לידה משוער",
+    client: "מיכל ברק",
+    date: "15.01",
+    time: "-",
+    type: "birth",
+  },
+  {
+    id: "4",
+    title: "הכנה ללידה - מפגש 3",
+    client: "דנה אברהם",
+    date: "18.01",
+    time: "16:00",
+    type: "meeting",
+  },
+];
+
+const typeConfig = {
+  meeting: { bg: "bg-sage-light", text: "text-secondary-foreground", icon: "👥" },
+  checkup: { bg: "bg-peach-light", text: "text-terracotta", icon: "📋" },
+  birth: { bg: "bg-primary/10", text: "text-primary", icon: "👶" },
+  reminder: { bg: "bg-lavender", text: "text-foreground", icon: "🔔" },
+};
+
+export function UpcomingEvents() {
+  return (
+    <div className="bg-card rounded-2xl p-6 shadow-card animate-fade-in">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-foreground">אירועים קרובים</h2>
+        <button className="text-sm text-primary hover:underline">הצג הכל</button>
+      </div>
+
+      <div className="space-y-3">
+        {events.map((event) => {
+          const config = typeConfig[event.type];
+          return (
+            <div
+              key={event.id}
+              className="flex items-center gap-4 p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer"
+            >
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center text-lg",
+                config.bg
+              )}>
+                {config.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-foreground text-sm truncate">{event.title}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <User className="w-3 h-3" />
+                  <span>{event.client}</span>
+                </div>
+              </div>
+              <div className="text-left">
+                <p className={cn("text-sm font-medium", config.text)}>{event.date}</p>
+                {event.time !== "-" && (
+                  <p className="text-xs text-muted-foreground">{event.time}</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+---
+
+--- Filename: src/components/dashboard/StatsCard.tsx ---
+import { cn } from "@/lib/utils";
+import { LucideIcon } from "lucide-react";
+
+interface StatsCardProps {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: LucideIcon;
+  trend?: {
+    value: number;
+    isPositive: boolean;
+  };
+  variant?: "default" | "warm" | "sage" | "accent";
+}
+
+export function StatsCard({ 
+  title, 
+  value, 
+  subtitle, 
+  icon: Icon,
+  trend,
+  variant = "default" 
+}: StatsCardProps) {
+  const variants = {
+    default: "bg-card",
+    warm: "bg-peach-light",
+    sage: "bg-sage-light",
+    accent: "bg-accent",
+  };
+
+  const iconVariants = {
+    default: "bg-muted text-muted-foreground",
+    warm: "gradient-warm text-primary-foreground",
+    sage: "gradient-sage text-secondary-foreground",
+    accent: "bg-primary text-primary-foreground",
+  };
+
+  return (
+    <div className={cn(
+      "rounded-2xl p-6 shadow-card transition-all duration-300 hover:shadow-hover animate-fade-in",
+      variants[variant]
+    )}>
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-3xl font-bold text-foreground">{value}</p>
+          {subtitle && (
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          )}
+          {trend && (
+            <div className={cn(
+              "inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full",
+              trend.isPositive ? "bg-sage-light text-secondary-foreground" : "bg-destructive/10 text-destructive"
+            )}>
+              {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
+            </div>
+          )}
+        </div>
+        <div className={cn(
+          "w-12 h-12 rounded-xl flex items-center justify-center",
+          iconVariants[variant]
+        )}>
+          <Icon className="w-6 h-6" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+---
+
+--- Filename: src/components/dashboard/WeeklyProgress.tsx ---
+import { cn } from "@/lib/utils";
+
+interface WeeklyProgressProps {
+  currentWeek: number;
+  className?: string;
+}
+
+export function WeeklyProgress({ currentWeek, className }: WeeklyProgressProps) {
+  const trimester = currentWeek <= 12 ? 1 : currentWeek <= 27 ? 2 : 3;
+  const progress = (currentWeek / 40) * 100;
+
+  const milestones = [
+    { week: 12, label: "סיום טרימסטר 1" },
+    { week: 20, label: "אולטרסאונד מערכות" },
+    { week: 27, label: "סיום טרימסטר 2" },
+    { week: 37, label: "לידה בטוחה" },
+    { week: 40, label: "תאריך לידה משוער" },
+  ];
+
+  return (
+    <div className={cn("bg-card rounded-2xl p-6 shadow-card animate-fade-in", className)}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-foreground">התקדמות ההיריון</h2>
+        <span className="text-sm text-muted-foreground">טרימסטר {trimester}</span>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="relative mb-8">
+        <div className="h-4 bg-muted rounded-full overflow-hidden">
+          <div 
+            className="h-full gradient-warm rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        
+        {/* Week indicator */}
+        <div 
+          className="absolute -top-1 transition-all duration-500"
+          style={{ right: `${progress}%`, transform: "translateX(50%)" }}
+        >
+          <div className="w-6 h-6 rounded-full bg-primary shadow-soft flex items-center justify-center">
+            <span className="text-[10px] font-bold text-primary-foreground">{currentWeek}</span>
+          </div>
+        </div>
+
+        {/* Milestone markers */}
+        {milestones.map((m) => (
+          <div
+            key={m.week}
+            className="absolute -bottom-6"
+            style={{ right: `${(m.week / 40) * 100}%`, transform: "translateX(50%)" }}
+          >
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              currentWeek >= m.week ? "bg-primary" : "bg-muted-foreground/30"
+            )} />
+          </div>
+        ))}
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 pt-4">
+        {milestones.map((m) => (
+          <div
+            key={m.week}
+            className={cn(
+              "flex items-center gap-1.5 text-xs",
+              currentWeek >= m.week ? "text-foreground" : "text-muted-foreground"
+            )}
+          >
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              currentWeek >= m.week ? "bg-primary" : "bg-muted-foreground/30"
+            )} />
+            <span>שבוע {m.week}: {m.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+---
+
+--- Filename: src/components/layout/Sidebar.tsx ---
+import { 
+  Home, 
+  Users, 
+  Calendar, 
+  Timer, 
+  FileText, 
+  Bell, 
+  Settings,
+  Baby
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface NavItem {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  href: string;
+  badge?: number;
+}
+
+const navItems: NavItem[] = [
+  { icon: Home, label: "דאשבורד", href: "/" },
+  { icon: Users, label: "יולדות", href: "/clients", badge: 12 },
+  { icon: Calendar, label: "יומן", href: "/calendar" },
+  { icon: Timer, label: "תזמון צירים", href: "/contractions" },
+  { icon: FileText, label: "סיכומים", href: "/summaries" },
+  { icon: Bell, label: "התראות", href: "/notifications", badge: 3 },
+];
+
+interface SidebarProps {
+  activeItem?: string;
+  onNavigate?: (href: string) => void;
+}
+
+export function Sidebar({ activeItem = "/", onNavigate }: SidebarProps) {
+  return (
+    <aside className="fixed right-0 top-0 h-screen w-64 bg-sidebar border-l border-sidebar-border flex flex-col">
+      {/* Logo */}
+      <div className="p-6 border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl gradient-warm flex items-center justify-center shadow-soft">
+            <Baby className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="font-bold text-lg text-foreground">SmartDoula</h1>
+            <p className="text-xs text-muted-foreground">ניהול לידה חכם</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-1">
+        {navItems.map((item) => {
+          const isActive = activeItem === item.href;
+          return (
+            <button
+              key={item.href}
+              onClick={() => onNavigate?.(item.href)}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+                isActive 
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft" 
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              )}
+            >
+              <item.icon className={cn(
+                "w-5 h-5",
+                isActive ? "text-primary" : "text-muted-foreground"
+              )} />
+              <span className="flex-1 text-right">{item.label}</span>
+              {item.badge && (
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-xs font-medium",
+                  isActive 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted text-muted-foreground"
+                )}>
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Settings */}
+      <div className="p-4 border-t border-sidebar-border">
+        <button
+          onClick={() => onNavigate?.("/settings")}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all duration-200"
+        >
+          <Settings className="w-5 h-5 text-muted-foreground" />
+          <span className="flex-1 text-right">הגדרות</span>
+        </button>
+      </div>
+
+      {/* User Profile */}
+      <div className="p-4 border-t border-sidebar-border">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <div className="w-10 h-10 rounded-full bg-sage-light flex items-center justify-center">
+            <span className="text-sm font-semibold text-secondary-foreground">מר</span>
+          </div>
+          <div className="flex-1 text-right">
+            <p className="text-sm font-medium text-foreground">מירב רוזנברג</p>
+            <p className="text-xs text-muted-foreground">דולה מוסמכת</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+
+---
+
+--- Filename: src/lib/utils.ts ---
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+
+---
+
+--- Filename: src/integrations/supabase/client.ts ---
+// This file is automatically generated. Do not edit it directly.
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from './types';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// Import the supabase client like this:
+// import { supabase } from "@/integrations/supabase/client";
+
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
+
+---
+
+--- Filename: src/integrations/supabase/types.ts ---
+//TODO
+
+---
+
+--- Filename: src/supabase/all command to supabase.txt ---
+//todo
+
+---
+
+--- Filename: public/_redirects ---
+/*    /index.html    200
+
+---
+
+--- Filename: public/robots.txt ---
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: *
+Allow: /
+
+
+---
+
