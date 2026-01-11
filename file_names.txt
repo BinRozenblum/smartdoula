@@ -48,3 +48,5 @@ src/integrations/supabase/types.ts
 src/supabase/all command to supabase.txt
 public/_redirects
 public/robots.txt
+
+ג

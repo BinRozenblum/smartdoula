@@ -2961,7 +2961,9 @@ export default function LiveMonitor() {
       // אם הציר שהיה פעיל קיבל זמן סיום
       if (payload.new.end_time) {
         setActiveContraction(null);
-        // רענון ההיסטוריה כדי לראות את הציר שהסתיים
+        // רענון ההיסטוריה כדי לראות 
+        
+        גדגדאת הציר שהסתיים
         fetchHistory();
       }
     }
