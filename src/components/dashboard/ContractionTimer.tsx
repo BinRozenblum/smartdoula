@@ -29,7 +29,9 @@ export function ContractionTimer() {
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const handleToggle = () => {
@@ -39,7 +41,7 @@ export function ContractionTimer() {
       const interval = lastContraction.current
         ? Math.floor((now.getTime() - lastContraction.current.getTime()) / 1000)
         : 0;
-      
+
       setContractions((prev) => [
         {
           id: Date.now(),
@@ -49,7 +51,7 @@ export function ContractionTimer() {
         },
         ...prev.slice(0, 9), // Keep last 10
       ]);
-      
+
       lastContraction.current = now;
       setSeconds(0);
     }
@@ -64,13 +66,17 @@ export function ContractionTimer() {
   };
 
   const avgDuration = contractions.length
-    ? Math.round(contractions.reduce((a, c) => a + c.duration, 0) / contractions.length)
+    ? Math.round(
+        contractions.reduce((a, c) => a + c.duration, 0) / contractions.length
+      )
     : 0;
-  
+
   const avgInterval = contractions.filter((c) => c.interval > 0).length
     ? Math.round(
-        contractions.filter((c) => c.interval > 0).reduce((a, c) => a + c.interval, 0) /
-        contractions.filter((c) => c.interval > 0).length
+        contractions
+          .filter((c) => c.interval > 0)
+          .reduce((a, c) => a + c.interval, 0) /
+          contractions.filter((c) => c.interval > 0).length
       )
     : 0;
 
@@ -85,24 +91,31 @@ export function ContractionTimer() {
 
       {/* Timer Display */}
       <div className="text-center mb-6">
-        <div className={cn(
-          "w-40 h-40 mx-auto rounded-full flex items-center justify-center mb-4 transition-all duration-300",
-          isRunning 
-            ? "gradient-warm animate-pulse-soft shadow-hover" 
-            : "bg-muted"
-        )}>
-          <span className={cn(
-            "text-4xl font-bold font-mono",
-            isRunning ? "text-primary-foreground" : "text-foreground"
-          )}>
+        <div
+          className={cn(
+            "w-40 h-40 mx-auto rounded-full flex items-center justify-center mb-4 transition-all duration-300",
+            isRunning
+              ? "gradient-warm animate-pulse-soft shadow-hover"
+              : "bg-muted"
+          )}
+        >
+          <span
+            className={cn(
+              "text-4xl font-bold font-mono",
+              isRunning ? "text-primary-foreground" : "text-foreground"
+            )}
+          >
             {formatTime(seconds)}
           </span>
         </div>
-        
+
         <Button
-          variant={isRunning ? "destructive" : "warm"}
+          variant={isRunning ? "destructive" : "default"}
           size="lg"
-          className="w-40"
+          className={cn(
+            "w-40",
+            !isRunning && "gradient-warm border-none shadow-soft"
+          )}
           onClick={handleToggle}
         >
           {isRunning ? (
@@ -124,11 +137,15 @@ export function ContractionTimer() {
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-sage-light rounded-xl p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">משך ממוצע</p>
-            <p className="text-2xl font-bold text-secondary-foreground">{formatTime(avgDuration)}</p>
+            <p className="text-2xl font-bold text-secondary-foreground">
+              {formatTime(avgDuration)}
+            </p>
           </div>
           <div className="bg-peach-light rounded-xl p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">מרווח ממוצע</p>
-            <p className="text-2xl font-bold text-terracotta">{formatTime(avgInterval)}</p>
+            <p className="text-2xl font-bold text-terracotta">
+              {formatTime(avgInterval)}
+            </p>
           </div>
         </div>
       )}
@@ -136,13 +153,17 @@ export function ContractionTimer() {
       {/* History */}
       {contractions.length > 0 && (
         <div className="space-y-2 max-h-48 overflow-y-auto">
-          <p className="text-xs font-medium text-muted-foreground mb-2">היסטוריה</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">
+            היסטוריה
+          </p>
           {contractions.map((c, i) => (
             <div
               key={c.id}
               className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm"
             >
-              <span className="text-muted-foreground">צייר #{contractions.length - i}</span>
+              <span className="text-muted-foreground">
+                צייר #{contractions.length - i}
+              </span>
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1 text-foreground">
                   <Clock className="w-3 h-3" />

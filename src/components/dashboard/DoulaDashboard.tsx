@@ -119,23 +119,23 @@ export function DoulaDashboard({ profile }: DoulaDashboardProps) {
   });
 
   return (
-    <div className="p-8 space-y-8 animate-fade-in">
+    <div className="p-4 md:p-8 space-y-8 animate-fade-in">
       {/* Header עם פעולות מהירות */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50 pb-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
             שלום, {profile.full_name.split(" ")[0]} 👋
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             הנה מבט על היולדות שלך והפעילויות להיום
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="gap-2 bg-white">
+          <Button variant="outline" size="sm" className="bg-white gap-2">
             <Filter className="w-4 h-4" />
             סינון
           </Button>
-          <Button className="gradient-warm gap-2 shadow-soft">
+          <Button size="sm" className="gradient-warm gap-2 shadow-soft">
             <Plus className="w-4 h-4" />
             הוספת יולדת
           </Button>
