@@ -19,6 +19,14 @@ import ClientsList from "./pages/doula/ClientsList";
 import ClientDetail from "./pages/doula/ClientDetail";
 import Settings from "./pages/mother/Settings";
 
+import ContractionTimerPage from "./pages/mother/ContractionTimerPage";
+import NotificationsPage from "./pages/doula/NotificationsPage";
+import LiveMonitor from "./pages/doula/LiveMonitor";
+
+{
+  /* דפים לאמא */
+}
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -70,6 +78,18 @@ const App = () => {
                 <Route path="/client/:id" element={<ClientDetail />} />
                 {/* אפשר להוסיף כאן עוד נתיבים: /calendar, /settings וכו' */}
                 <Route path="/settings" element={<Settings />} />
+
+                <Route
+                  path="/contractions"
+                  element={<ContractionTimerPage />}
+                />
+
+                {/* דפים לדולה */}
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route
+                  path="/live-monitor/:clientId"
+                  element={<LiveMonitor />}
+                />
               </Route>
             )}
 

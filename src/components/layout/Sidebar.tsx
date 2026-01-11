@@ -53,12 +53,7 @@ export function Sidebar({
       href: "/calendar",
       roles: ["mother", "doula"],
     },
-    {
-      icon: Timer,
-      label: "תזמון צירים",
-      href: "/contractions",
-      roles: ["mother", "doula"],
-    },
+
     {
       icon: FileText,
       label: profile?.role === "doula" ? "סיכומי לידה" : "תוכנית לידה",

@@ -16,7 +16,7 @@ import {
   Phone,
   FileText,
   Baby,
-  MessageSquare,
+  MessageSquare,Activity,
   MapPin,
   ArrowRight,
   Loader2,
@@ -178,6 +178,14 @@ export default function ClientDetail() {
             </span>
           </div>
         </div>
+
+        <Button
+          onClick={() => navigate(`/live-monitor/${id}`)}
+          className="bg-red-500 hover:bg-red-600 text-white gap-2 shadow-lg animate-pulse"
+        >
+          <Activity className="w-4 h-4" />
+          צפייה במוניטור חי
+        </Button>
       </div>
 
       {/* סרגל התקדמות */}
