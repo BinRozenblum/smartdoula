@@ -22,6 +22,8 @@ import {
   Loader2,
   Clock,
   Plus,
+  HeartPulse,
+  AlertCircle,
 } from "lucide-react";
 import { WeeklyProgress } from "@/components/dashboard/WeeklyProgress";
 
@@ -38,13 +40,22 @@ export default function ClientDetail() {
 
       try {
         setLoading(true);
-        // 1. שליפת פרטי הריון ופרופיל האם
+        // שליפת פרטי הריון + חיבור לטבלת פרופילים של האמא
+        // שים לב: profiles:mother_id בודק את ה-Foreign Key
         const { data: preg, error: pregError } = await supabase
           .from("pregnancies")
           .select(
             `
             *,
-            profiles:mother_id(*)
+            profiles:mother_id (
+              id,
+              full_name,
+              phone,
+              address,
+              personal_notes,
+              avatar_url,
+              date_of_birth
+            )
           `
           )
           .eq("id", id)
@@ -52,14 +63,12 @@ export default function ClientDetail() {
 
         if (pregError) throw pregError;
 
-        // 2. שליפת אירועים (Timeline)
-        const { data: evs, error: evsError } = await supabase
+        // שליפת אירועים
+        const { data: evs } = await supabase
           .from("pregnancy_events")
           .select("*")
           .eq("pregnancy_id", id)
           .order("event_date", { ascending: false });
-
-        if (evsError) console.error("Error fetching events:", evsError);
 
         setData(preg);
         setEvents(evs || []);
@@ -72,7 +81,6 @@ export default function ClientDetail() {
     fetchData();
   }, [id]);
 
-  // מניעת קריסה: תצוגת טעינה כל עוד אין נתונים
   if (loading) {
     return (
       <div className="h-[calc(100vh-4rem)] w-full flex flex-col items-center justify-center gap-4">
@@ -82,7 +90,6 @@ export default function ClientDetail() {
     );
   }
 
-  // מניעת קריסה: אם הטעינה הסתיימה אבל לא נמצאו נתונים
   if (!data) {
     return (
       <div className="p-8 text-center space-y-4">
@@ -92,9 +99,16 @@ export default function ClientDetail() {
     );
   }
 
-  const currentWeek = calculateWeek(data.estimated_due_date);
-  const motherName = data.profiles?.full_name || "ללא שם";
+  // חישוב שבוע הריון
+  const { currentWeek, daysInWeek } = calculatePregnancyProgress(
+    data.last_period_date,
+    data.estimated_due_date
+  );
+
+  // נתונים לתצוגה עם ערכי ברירת מחדל
+  const motherName = data.profiles?.full_name || "שם לא זמין";
   const avatarLetter = motherName[0] || "?";
+  const motherAge = calculateAge(data.profiles?.date_of_birth);
 
   return (
     <div
@@ -119,9 +133,19 @@ export default function ClientDetail() {
           </div>
           <div className="space-y-1">
             <h1 className="text-3xl font-bold text-foreground">{motherName}</h1>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="bg-background">
-                שבוע {currentWeek}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {motherAge && <span>בת {motherAge}</span>}
+              {motherAge && (
+                <span className="w-1 h-1 bg-muted-foreground/40 rounded-full" />
+              )}
+              <span>{data.profiles?.address || "אין כתובת"}</span>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Badge
+                variant="outline"
+                className="bg-background border-primary/30 text-primary"
+              >
+                שבוע {currentWeek} + {daysInWeek}
               </Badge>
               {data.tags?.map((tag: string) => (
                 <Badge
@@ -136,14 +160,20 @@ export default function ClientDetail() {
         </div>
 
         <div className="flex flex-col gap-3 w-full md:w-auto min-w-[200px]">
-          <div className="flex items-center gap-3 text-sm text-muted-foreground bg-background/50 p-2 rounded-lg">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground bg-background/50 p-2 rounded-lg border border-border/50">
             <Phone className="w-4 h-4 text-primary" />
-            <span dir="ltr">{data.profiles?.phone || "אין טלפון"}</span>
+            <a
+              href={`tel:${data.profiles?.phone}`}
+              dir="ltr"
+              className="hover:text-primary transition-colors"
+            >
+              {data.profiles?.phone || "אין טלפון"}
+            </a>
           </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground bg-background/50 p-2 rounded-lg">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground bg-background/50 p-2 rounded-lg border border-border/50">
             <Calendar className="w-4 h-4 text-primary" />
             <span>
-              תאריך משוער:{" "}
+              תל"מ:{" "}
               {new Date(data.estimated_due_date).toLocaleDateString("he-IL")}
             </span>
           </div>
@@ -155,7 +185,10 @@ export default function ClientDetail() {
 
       {/* טאבים למידע */}
       <Tabs defaultValue="timeline" className="w-full">
-        <TabsList className="w-full justify-start h-12 bg-muted/50 p-1 rounded-xl mb-6" dir="rtl">
+        <TabsList
+          className="w-full justify-start h-12 bg-muted/50 p-1 rounded-xl mb-6"
+          dir="rtl"
+        >
           <TabsTrigger
             value="timeline"
             className="flex-1 max-w-[200px] rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
@@ -166,7 +199,7 @@ export default function ClientDetail() {
             value="details"
             className="flex-1 max-w-[200px] rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
           >
-            פרטים אישיים
+            תיק רפואי ופרטים
           </TabsTrigger>
           <TabsTrigger
             value="birth"
@@ -180,7 +213,7 @@ export default function ClientDetail() {
         <TabsContent value="timeline" className="space-y-4" dir="rtl">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-semibold text-lg">היסטוריית ליווי</h3>
-            <Button size="sm" variant="outline" className="gap-2">
+            <Button size="sm" variant="outline" className="gap-2 bg-white">
               <Plus className="w-4 h-4" /> תיעוד חדש
             </Button>
           </div>
@@ -194,9 +227,7 @@ export default function ClientDetail() {
             ) : (
               events.map((event) => (
                 <div key={event.id} className="relative group">
-                  {/* נקודה על הציר */}
-                  <div className="absolute -right-[41px] top-4 w-5 h-5 rounded-full bg-background border-4 border-primary shadow-sm z-10 group-hover:scale-110 transition-transform" />
-
+                  <div className="absolute -right-[41px] top-4 w-5 h-5 rounded-full bg-background border-4 border-primary shadow-sm z-10" />
                   <Card className="hover:shadow-md transition-shadow">
                     <CardHeader className="py-4 pb-2">
                       <div className="flex justify-between items-start">
@@ -225,20 +256,50 @@ export default function ClientDetail() {
           </div>
         </TabsContent>
 
-        {/* --- טאב פרטים מעמיקים --- */}
+        {/* --- טאב תיק רפואי ופרטים --- */}
         <TabsContent value="details" dir="rtl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+            {/* מידע רפואי - חדש! */}
+            <Card className="md:col-span-2 bg-red-50/30 border-red-100">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-terracotta" />
-                  כתובת ומגורים
+                <CardTitle className="text-lg flex items-center gap-2 text-red-900">
+                  <HeartPulse className="w-5 h-5 text-red-500" />
+                  מידע רפואי קריטי
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {data.profiles?.address || "לא הוזנה כתובת"}
-                </p>
+              <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">
+                    סוג דם
+                  </span>
+                  <p className="font-semibold text-lg">
+                    {data.blood_type || "לא ידוע"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">
+                    מספר עוברים
+                  </span>
+                  <p className="font-semibold text-lg">
+                    {data.number_of_fetuses || 1}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">
+                    רגישויות/אלרגיות
+                  </span>
+                  <p className="font-medium text-red-600">
+                    {data.allergies || "ללא"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">
+                    מחלות רקע
+                  </span>
+                  <p className="font-medium">
+                    {data.background_diseases || "ללא"}
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -260,10 +321,42 @@ export default function ClientDetail() {
                 </div>
                 <div>
                   <span className="font-semibold block text-sm mb-1">
-                    הערות חשובות:
+                    הערות כלליות:
                   </span>
                   <p className="text-muted-foreground text-sm leading-relaxed bg-muted/30 p-3 rounded-lg">
-                    {data.profiles?.personal_notes || "אין הערות מיוחדות"}
+                    {data.profiles?.personal_notes ||
+                      "אין הערות מיוחדות בפרופיל"}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-terracotta" />
+                  פרטים נוספים
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <span className="font-semibold block text-sm mb-1">
+                    תאריך וסת אחרון:
+                  </span>
+                  <p className="text-muted-foreground">
+                    {data.last_period_date
+                      ? new Date(data.last_period_date).toLocaleDateString(
+                          "he-IL"
+                        )
+                      : "לא הוזן"}
+                  </p>
+                </div>
+                <div>
+                  <span className="font-semibold block text-sm mb-1">
+                    היסטוריית לידות (G/P):
+                  </span>
+                  <p className="text-muted-foreground">
+                    {data.g_p_summary || "-"}
                   </p>
                 </div>
               </CardContent>
@@ -271,74 +364,126 @@ export default function ClientDetail() {
           </div>
         </TabsContent>
 
-        {/* --- טאב לידה --- */}
+        {/* --- טאב סיכום לידה --- */}
         <TabsContent value="birth" dir="rtl">
           <Card
             className={
               !data.birth_date
                 ? "border-dashed bg-muted/10"
-                : "bg-gradient-to-br from-white to-orange-50/50"
+                : "bg-gradient-to-br from-white to-orange-50/50 border-orange-100"
             }
           >
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Baby className="w-6 h-6 text-primary" /> פרטי הלידה
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Baby className="w-6 h-6 text-primary" />
+                פרטי הלידה
               </CardTitle>
               <CardDescription>
                 {data.birth_date
-                  ? "מזל טוב! הנה פרטי הלידה המתועדים."
-                  : "החלק הזה יתמלא לאחר הלידה."}
+                  ? "בשעה טובה! הנה הפרטים שתועדו מהלידה."
+                  : "אזור זה יתמלא אוטומטית לאחר דיווח על לידה."}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {!data.birth_date ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Baby className="w-8 h-8 text-muted-foreground/50" />
+                // --- מצב: טרם נולדו ---
+                <div className="text-center py-10 flex flex-col items-center justify-center">
+                  <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4 animate-pulse">
+                    <Baby className="w-10 h-10 text-muted-foreground/40" />
                   </div>
-                  <p className="text-muted-foreground mb-4">
-                    הלידה טרם דווחה במערכת.
+                  <h3 className="text-lg font-semibold text-muted-foreground">
+                    הלידה טרם דווחה
+                  </h3>
+                  <p className="text-sm text-muted-foreground/70 max-w-xs mb-6">
+                    כאשר היולדת תלד, תוכלי להזין כאן את תאריך הלידה, המשקל
+                    וסיכום החוויה.
                   </p>
-                  <Button
-                    variant="outline"
-                    className="border-primary text-primary hover:bg-primary/5"
-                  >
-                    דיווח על לידה
+                  <Button className="gradient-warm text-white gap-2 shadow-lg hover:shadow-xl transition-all">
+                    <Plus className="w-4 h-4" />
+                    דיווח על לידה חדשה
                   </Button>
                 </div>
               ) : (
+                // --- מצב: לאחר לידה (הצגת נתונים) ---
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      תאריך ושעה
-                    </h4>
-                    <p className="text-lg font-semibold">
-                      {new Date(data.birth_date).toLocaleString("he-IL")}
-                    </p>
+                  {/* תאריך ושעה */}
+                  <div className="flex items-start gap-4">
+                    <div className="bg-white p-3 rounded-xl shadow-sm border border-orange-100 text-orange-500">
+                      <Clock className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-muted-foreground mb-1">
+                        תאריך ושעה
+                      </h4>
+                      <p className="text-xl font-bold text-foreground">
+                        {new Date(data.birth_date).toLocaleDateString("he-IL", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        בשעה{" "}
+                        {new Date(data.birth_date).toLocaleTimeString("he-IL", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      משקל התינוק/ת
-                    </h4>
-                    <p className="text-lg font-semibold">
-                      {data.baby_weight ? `${data.baby_weight} גרם` : "לא צוין"}
-                    </p>
+
+                  {/* משקל */}
+                  <div className="flex items-start gap-4">
+                    <div className="bg-white p-3 rounded-xl shadow-sm border border-blue-100 text-blue-500">
+                      {/* Scale icon is not in basic lucide imports sometimes, using Baby as fallback or verify import */}
+                      <Baby className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-muted-foreground mb-1">
+                        משקל התינוק/ת
+                      </h4>
+                      <p className="text-xl font-bold text-foreground">
+                        {data.baby_weight
+                          ? `${data.baby_weight.toLocaleString()} גרם`
+                          : "לא צוין"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      סוג לידה
-                    </h4>
-                    <p className="text-lg font-semibold">
-                      {data.delivery_type || "רגילה"}
-                    </p>
+
+                  {/* סוג לידה */}
+                  <div className="flex items-start gap-4">
+                    <div className="bg-white p-3 rounded-xl shadow-sm border border-purple-100 text-purple-500">
+                      <HeartPulse className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-muted-foreground mb-1">
+                        סוג לידה
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xl font-bold text-foreground">
+                          {data.delivery_type || "לידה וגינלית"}
+                        </p>
+                        {/* אפשר להוסיף כאן תגית אם זה ניתוח */}
+                        {data.delivery_type?.includes("קיסרי") && (
+                          <Badge variant="destructive" className="text-[10px]">
+                            ניתוח
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="col-span-full bg-white p-4 rounded-xl border shadow-sm">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">
+
+                  {/* סיכום מילולי - תופס רוחב מלא */}
+                  <div className="col-span-1 md:col-span-2 mt-4">
+                    <h4 className="text-sm font-bold text-muted-foreground mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
                       סיכום מהלך הלידה
                     </h4>
-                    <p className="text-foreground leading-relaxed">
-                      {data.birth_summary || "לא הוזן סיכום מילולי."}
-                    </p>
+                    <div className="bg-white/80 p-5 rounded-2xl border border-orange-100 shadow-sm">
+                      <p className="text-foreground leading-relaxed whitespace-pre-wrap text-base">
+                        {data.birth_summary || "לא הוזן סיכום מילולי ללידה זו."}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -350,11 +495,50 @@ export default function ClientDetail() {
   );
 }
 
-// פונקציות עזר
+// --- פונקציות חישוב ---
+
+// חישוב שבוע הריון מוסת אחרון או מתאריך לידה משוער
+function calculatePregnancyProgress(
+  lastPeriodDate: string | null,
+  dueDate: string
+) {
+  let startDate = new Date();
+
+  if (lastPeriodDate) {
+    startDate = new Date(lastPeriodDate);
+  } else if (dueDate) {
+    // אם אין וסת אחרון, נחשב אחורה 280 יום מהתל"מ
+    startDate = new Date(
+      new Date(dueDate).getTime() - 280 * 24 * 60 * 60 * 1000
+    );
+  } else {
+    return { currentWeek: 0, daysInWeek: 0 };
+  }
+
+  const today = new Date();
+  const diffTime = Math.abs(today.getTime() - startDate.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  const currentWeek = Math.floor(diffDays / 7);
+  const daysInWeek = diffDays % 7;
+
+  return {
+    currentWeek: Math.min(42, Math.max(0, currentWeek)),
+    daysInWeek,
+  };
+}
+
+function calculateAge(dob: string) {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  const ageDifMs = Date.now() - birthDate.getTime();
+  const ageDate = new Date(ageDifMs);
+  return Math.abs(ageDate.getUTCFullYear() - 1970);
+}
+
 function getEventIcon(type: string) {
   const baseClass =
     "w-9 h-9 rounded-lg flex items-center justify-center shrink-0";
-
   switch (type) {
     case "meeting":
       return (
@@ -387,11 +571,4 @@ function getEventIcon(type: string) {
         </div>
       );
   }
-}
-
-function calculateWeek(dueDate: string) {
-  if (!dueDate) return 0;
-  const diff = new Date(dueDate).getTime() - new Date().getTime();
-  const weeksLeft = Math.floor(diff / (1000 * 60 * 60 * 24 * 7));
-  return Math.max(0, 40 - weeksLeft);
 }

@@ -17,6 +17,7 @@ import { Loader2 } from "lucide-react";
 import Index from "./pages/Index"; // זה יהפוך להיות רק התצוגה של הדאשבורד
 import ClientsList from "./pages/doula/ClientsList";
 import ClientDetail from "./pages/doula/ClientDetail";
+import Settings from "./pages/mother/Settings";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => {
                 <Route path="/clients" element={<ClientsList />} />
                 <Route path="/client/:id" element={<ClientDetail />} />
                 {/* אפשר להוסיף כאן עוד נתיבים: /calendar, /settings וכו' */}
+                <Route path="/settings" element={<Settings />} />
               </Route>
             )}
 
