@@ -290,6 +290,13 @@ export default tseslint.config(
 
 ---
 
+--- Filename: .gitignore ---
+
+node_modules/
+
+
+---
+
 --- Filename: package.json ---
 {
   "name": "vite_react_shadcn_ts",
@@ -334,6 +341,7 @@ export default tseslint.config(
     "@radix-ui/react-tooltip": "^1.2.7",
     "@tanstack/react-query": "^5.83.0",
     "class-variance-authority": "^0.7.1",
+    "@supabase/supabase-js": "^2.84.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
@@ -376,29 +384,34 @@ export default tseslint.config(
   }
 }
 
+---
+
+--- Filename: .env ---
+VITE_SUPABASE_PROJECT_ID="tushyiyejchobxulbuip"
+VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1c2h5aXllamNob2J4dWxidWlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyNjYzOTEsImV4cCI6MjA4Mjg0MjM5MX0.KWBPT6FiriSNrbVMAeW0h8PYNEovRPLli6Ev1ZIHMUY"
+VITE_SUPABASE_URL="https://tushyiyejchobxulbuip.supabase.co"
+
+VITE_GOOGLE_MAPS_API_KEY="AIzaSyDchIfoiYF1Qlfw69vYMqFv15fMkH6cyJk"
+
 
 ---
 
 --- Filename: index.html ---
-<!doctype html>
-<html lang="en">
-  <head>
+<!DOCTYPE html>
+<html lang="he">
+  <head dir="rtl">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- TODO: Set the document title to the name of your application -->
-    <title>Lovable App</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
+    <title>SmartDoula</title>
+    <meta name="description" content="SmartDoula" />
+    <meta name="author" content="SmartDoula" />
 
     <!-- TODO: Update og:title to match your application name -->
-    <meta property="og:title" content="Lovable App" />
-    <meta property="og:description" content="Lovable Generated Project" />
+
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
   </head>
 
   <body>
@@ -728,31 +741,77 @@ createRoot(document.getElementById("root")!).render(<App />);
 ---
 
 --- Filename: src/App.tsx ---
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
+import AuthPage from "./pages/Auth";
+import InviteRegister from "./pages/InviteRegister";
 import NotFound from "./pages/NotFound";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // בדיקת סשן נוכחי
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    // האזנה לשינויים בהתחברות (Logout/Login)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center gradient-subtle">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* דפים ציבוריים */}
+            <Route
+              path="/auth"
+              element={!session ? <AuthPage /> : <Navigate to="/" />}
+            />
+            <Route path="/invite" element={<InviteRegister />} />
+
+            {/* דפים מוגנים */}
+            <Route
+              path="/"
+              element={session ? <Index /> : <Navigate to="/auth" />}
+            />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
 
@@ -760,152 +819,480 @@ export default App;
 ---
 
 --- Filename: src/types/index.tsx ---
-//todo
+export type UserRole = 'mother' | 'doula';
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  role: UserRole;
+  phone?: string;
+  avatar_url?: string;
+}
+
+export interface Pregnancy {
+  id: string;
+  mother_id: string;
+  doula_id?: string;
+  start_date: string;
+  estimated_due_date: string;
+  hospital_preference?: string;
+  birth_plan_notes?: any;
+  is_active: boolean;
+  pregnancy_number: number;
+}
+
+export interface Contraction {
+  id: string;
+  pregnancy_id: string;
+  start_time: string;
+  end_time?: string;
+  intensity?: number;
+}
+
+---
+
+--- Filename: src/pages/InviteRegister.tsx ---
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Baby, Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+
+export default function InviteRegister() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const doulaId = searchParams.get("doulaId");
+  
+  const [doulaName, setDoulaName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    fullName: "",
+    dueDate: ""
+  });
+
+  // טעינת שם הדולה כדי לתת הרגשה אישית
+  useEffect(() => {
+    if (doulaId) {
+      supabase.from('profiles').select('full_name').eq('id', doulaId).single()
+        .then(({ data }) => setDoulaName(data?.full_name || null));
+    }
+  }, [doulaId]);
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!doulaId) return;
+    
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.fullName,
+          role: 'mother',
+          invited_by: doulaId,
+          due_date: formData.dueDate
+        },
+      },
+    });
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("ברוכה הבאה! החשבון נוצר והקשר עם הדולה עודכן");
+      navigate("/");
+    }
+    setLoading(false);
+  };
+
+  if (!doulaId) return <div className="text-center p-10 font-heebo text-xl text-destructive">קישור הזמנה לא תקין</div>;
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="max-w-md w-full shadow-hover border-none bg-card/50 backdrop-blur-sm">
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 gradient-warm rounded-full flex items-center justify-center shadow-soft">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-2xl font-bold">הצטרפי ל-SmartDoula</CardTitle>
+          <CardDescription className="text-lg">
+            {doulaName ? (
+              <span>הדולה <strong>{doulaName}</strong> הזמינה אותך לליווי דיגיטלי אישי</span>
+            ) : (
+              "הוזמנת לליווי אישי חכם"
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleRegister} className="space-y-4 font-heebo text-right" dir="rtl">
+            <div className="space-y-2">
+              <Label>שם מלא</Label>
+              <Input required placeholder="איך לקרוא לך?" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>אימייל</Label>
+              <Input type="email" required placeholder="your@email.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>סיסמה</Label>
+              <Input type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>תאריך לידה משוער (אופציונלי)</Label>
+              <Input type="date" value={formData.dueDate} onChange={e => setFormData({...formData, dueDate: e.target.value})} />
+            </div>
+            <Button className="w-full gradient-warm text-white h-12 text-lg mt-6" disabled={loading}>
+              {loading ? <Loader2 className="animate-spin" /> : "בואי נתחיל"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+---
+
+--- Filename: src/pages/Auth.tsx ---
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Baby, Heart, Users, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+export default function AuthPage() {
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<"mother" | "doula">("mother");
+  const navigate = useNavigate();
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          // השמות כאן חייבים להיות זהים למה שה-SQL מחפש (full_name ו-role)
+          full_name: fullName,
+          role: role,
+        },
+      },
+    });
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("נרשמת בהצלחה! בדקי את המייל לאישור החשבון");
+    }
+    setLoading(false);
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      toast.error("שגיאה בהתחברות: " + error.message);
+    } else {
+      toast.success("ברוכה הבאה!");
+      navigate("/");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-peach-light/40 via-background to-sage-light/20">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo Section */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex w-16 h-16 rounded-2xl gradient-warm items-center justify-center shadow-soft mb-2">
+            <Baby className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            SmartDoula
+          </h1>
+          <p className="text-muted-foreground">
+            הבית שלך לניהול ההיריון והלידה
+          </p>
+        </div>
+
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8" dir="rtl">
+            <TabsTrigger value="login">התחברות</TabsTrigger>
+            <TabsTrigger value="register">הרשמה</TabsTrigger>
+          </TabsList>
+
+          {/* Login Form */}
+          <TabsContent value="login" dir="rtl">
+            <Card className="border-none shadow-card">
+              <form onSubmit={handleSignIn}>
+                <CardHeader>
+                  <CardTitle>שמחים שחזרת</CardTitle>
+                  <CardDescription>
+                    הזיני פרטים כדי להיכנס לחשבון שלך
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">אימייל</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">סיסמה</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    className="w-full gradient-warm text-white font-bold"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      "כניסה"
+                    )}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </TabsContent>
+
+          {/* Register Form */}
+          <TabsContent value="register" dir="rtl">
+            <Card className="border-none shadow-card">
+              <form onSubmit={handleSignUp}>
+                <CardHeader>
+                  <CardTitle>יצירת חשבון חדש</CardTitle>
+                  <CardDescription>
+                    הצטרפי לקהילת הדולות והאמהות שלנו
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">שם מלא</Label>
+                    <Input
+                      id="name"
+                      placeholder="ישראל ישראלית"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-email">אימייל</Label>
+                    <Input
+                      id="reg-email"
+                      type="email"
+                      placeholder="name@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-password">סיסמה</Label>
+                    <Input
+                      id="reg-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <Label>אני נרשמת כ...</Label>
+                    <RadioGroup
+                      defaultValue="mother"
+                      className="grid grid-cols-2 gap-4"
+                      onValueChange={(v) => setRole(v as any)}
+                    >
+                      <div>
+                        <RadioGroupItem
+                          value="mother"
+                          id="mother"
+                          className="peer sr-only"
+                        />
+                        <Label
+                          htmlFor="mother"
+                          className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all"
+                        >
+                          <Heart className="mb-2 h-6 w-6 text-primary" />
+                          <span className="font-semibold">אמא</span>
+                        </Label>
+                      </div>
+                      <div>
+                        <RadioGroupItem
+                          value="doula"
+                          id="doula"
+                          className="peer sr-only"
+                        />
+                        <Label
+                          htmlFor="doula"
+                          className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent peer-data-[state=checked]:border-secondary [&:has([data-state=checked])]:border-secondary cursor-pointer transition-all"
+                        >
+                          <Users className="mb-2 h-6 w-6 text-secondary-foreground" />
+                          <span className="font-semibold">דולה</span>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    className="w-full gradient-warm text-white font-bold"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      "הרשמה"
+                    )}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <p className="text-center text-xs text-muted-foreground px-8 leading-relaxed">
+          בלחיצה על הרשמה, את מסכימה לתנאי השימוש ולמדיניות הפרטיות שלנו.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 
 ---
 
 --- Filename: src/pages/Index.tsx ---
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { ClientCard } from "@/components/dashboard/ClientCard";
-import { ContractionTimer } from "@/components/dashboard/ContractionTimer";
-import { WeeklyProgress } from "@/components/dashboard/WeeklyProgress";
-import { UpcomingEvents } from "@/components/dashboard/UpcomingEvents";
-import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
-import { Users, Baby, Calendar, Clock } from "lucide-react";
+import { DoulaDashboard } from "@/components/dashboard/DoulaDashboard";
+import { MotherDashboard } from "@/components/dashboard/MotherDashboard";
+import { Loader2, Menu, X, Baby } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const mockClients = [
-  {
-    name: "שירה לוי",
-    week: 38,
-    dueDate: "15.01.2026",
-    location: "תל אביב - איכילוב",
-    status: "urgent" as const,
-    lastUpdate: "לפני 10 דקות",
-  },
-  {
-    name: "נועה כהן",
-    week: 32,
-    dueDate: "01.03.2026",
-    location: "ירושלים - הדסה",
-    status: "active" as const,
-    lastUpdate: "היום, 09:30",
-  },
-  {
-    name: "מיכל ברק",
-    week: 36,
-    dueDate: "25.01.2026",
-    location: "רמת גן - שיבא",
-    status: "approaching" as const,
-    lastUpdate: "אתמול",
-  },
-  {
-    name: "דנה אברהם",
-    week: 28,
-    dueDate: "15.03.2026",
-    location: "חיפה - רמב״ם",
-    status: "active" as const,
-    lastUpdate: "לפני 3 ימים",
-  },
-];
-
-const Index = () => {
+export default function Index() {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [activeNav, setActiveNav] = useState("/");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    async function getProfile() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+        setProfile(data);
+      }
+      setLoading(false);
+    }
+    getProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar activeItem={activeNav} onNavigate={setActiveNav} />
-
-      {/* Main Content */}
-      <main className="mr-64 min-h-screen">
-        {/* Header */}
-        <header className="sticky top-0 z-10 glass border-b border-border/50 px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                שלום, מירב 👋
-              </h1>
-              <p className="text-muted-foreground">הנה הסקירה היומית שלך</p>
-            </div>
-            <Button variant="warm" size="lg">
-              + יולדת חדשה
-            </Button>
+    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden flex items-center justify-between p-4 bg-white/80 backdrop-blur-md border-b sticky top-0 z-40">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg gradient-warm flex items-center justify-center">
+            <Baby className="w-5 h-5 text-white" />
           </div>
-        </header>
-
-        {/* Dashboard Content */}
-        <div className="p-8 space-y-8">
-          {/* Stats Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatsCard
-              title="יולדות פעילות"
-              value={12}
-              subtitle="2 מתקרבות ללידה"
-              icon={Users}
-              variant="warm"
-            />
-            <StatsCard
-              title="לידות החודש"
-              value={3}
-              subtitle="2 הצלחות, 1 בתהליך"
-              icon={Baby}
-              variant="sage"
-              trend={{ value: 15, isPositive: true }}
-            />
-            <StatsCard
-              title="פגישות השבוע"
-              value={8}
-              subtitle="3 היום"
-              icon={Calendar}
-              variant="default"
-            />
-            <StatsCard
-              title="ממתינות לתשומת לב"
-              value={2}
-              subtitle="דורשות מעקב"
-              icon={Clock}
-              variant="accent"
-            />
-          </div>
-
-          {/* Main Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Clients List */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-foreground">
-                  היולדות שלי
-                </h2>
-                <Button variant="ghost">הצג הכל</Button>
-              </div>
-              <div className="grid gap-4">
-                {mockClients.map((client) => (
-                  <ClientCard key={client.name} {...client} />
-                ))}
-              </div>
-            </div>
-
-            {/* Sidebar Widgets */}
-            <div className="space-y-6">
-              <AlertsWidget />
-              <ContractionTimer />
-            </div>
-          </div>
-
-          {/* Bottom Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <WeeklyProgress currentWeek={38} />
-            <UpcomingEvents />
-          </div>
+          <span className="font-bold text-lg text-foreground">SmartDoula</span>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        >
+          {isSidebarOpen ? (
+            <X className="w-6 h-6" />
+          ) : (
+            <Menu className="w-6 h-6" />
+          )}
+        </Button>
+      </div>
+
+      <Sidebar
+        activeItem={activeNav}
+        onNavigate={setActiveNav}
+        profile={profile}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+
+      <main className="flex-1 lg:mr-64 min-h-screen">
+        {profile?.role === "doula" ? (
+          <DoulaDashboard profile={profile} />
+        ) : (
+          <MotherDashboard profile={profile} />
+        )}
       </main>
     </div>
   );
-};
-
-export default Index;
+}
 
 
 ---
@@ -1187,6 +1574,57 @@ export { NavLink };
 
 ---
 
+--- Filename: src/components/dashboard/MotherDashboard.tsx ---
+// src/components/dashboard/MotherDashboard.tsx
+import { WeeklyProgress } from "./WeeklyProgress";
+import { ContractionTimer } from "./ContractionTimer";
+import { AlertsWidget } from "./AlertsWidget";
+
+export function MotherDashboard({ profile }: { profile: any }) {
+  return (
+    <div className="p-4 md:p-8 space-y-8 animate-fade-in">
+      <header>
+        <h1 className="text-2xl md:text-3xl font-bold">
+          ההיריון שלי, {profile?.full_name?.split(" ")[0]} ✨
+        </h1>
+        <p className="text-sm md:text-base text-muted-foreground">
+          כל המידע והכלים ללידה שלך במקום אחד
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          {/* התקדמות שבועית בולטת */}
+          <WeeklyProgress currentWeek={32} className="py-10" />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl shadow-card">
+              <h3 className="font-bold mb-2">תוכנית לידה</h3>
+              <p className="text-sm text-muted-foreground">
+                המכתב שלך לבית החולים מוכן. ניתן לערוך אותו בכל עת.
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-card">
+              <h3 className="font-bold mb-2">הדולה שלי</h3>
+              <p className="text-sm text-muted-foreground">
+                מירב רוזנברג זמינה עבורך לכל שאלה.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          <ContractionTimer />
+          <AlertsWidget />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+---
+
 --- Filename: src/components/dashboard/AlertsWidget.tsx ---
 import { AlertTriangle, Info, CheckCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -1463,7 +1901,9 @@ export function ContractionTimer() {
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const handleToggle = () => {
@@ -1473,7 +1913,7 @@ export function ContractionTimer() {
       const interval = lastContraction.current
         ? Math.floor((now.getTime() - lastContraction.current.getTime()) / 1000)
         : 0;
-      
+
       setContractions((prev) => [
         {
           id: Date.now(),
@@ -1483,7 +1923,7 @@ export function ContractionTimer() {
         },
         ...prev.slice(0, 9), // Keep last 10
       ]);
-      
+
       lastContraction.current = now;
       setSeconds(0);
     }
@@ -1498,13 +1938,17 @@ export function ContractionTimer() {
   };
 
   const avgDuration = contractions.length
-    ? Math.round(contractions.reduce((a, c) => a + c.duration, 0) / contractions.length)
+    ? Math.round(
+        contractions.reduce((a, c) => a + c.duration, 0) / contractions.length
+      )
     : 0;
-  
+
   const avgInterval = contractions.filter((c) => c.interval > 0).length
     ? Math.round(
-        contractions.filter((c) => c.interval > 0).reduce((a, c) => a + c.interval, 0) /
-        contractions.filter((c) => c.interval > 0).length
+        contractions
+          .filter((c) => c.interval > 0)
+          .reduce((a, c) => a + c.interval, 0) /
+          contractions.filter((c) => c.interval > 0).length
       )
     : 0;
 
@@ -1519,24 +1963,31 @@ export function ContractionTimer() {
 
       {/* Timer Display */}
       <div className="text-center mb-6">
-        <div className={cn(
-          "w-40 h-40 mx-auto rounded-full flex items-center justify-center mb-4 transition-all duration-300",
-          isRunning 
-            ? "gradient-warm animate-pulse-soft shadow-hover" 
-            : "bg-muted"
-        )}>
-          <span className={cn(
-            "text-4xl font-bold font-mono",
-            isRunning ? "text-primary-foreground" : "text-foreground"
-          )}>
+        <div
+          className={cn(
+            "w-40 h-40 mx-auto rounded-full flex items-center justify-center mb-4 transition-all duration-300",
+            isRunning
+              ? "gradient-warm animate-pulse-soft shadow-hover"
+              : "bg-muted"
+          )}
+        >
+          <span
+            className={cn(
+              "text-4xl font-bold font-mono",
+              isRunning ? "text-primary-foreground" : "text-foreground"
+            )}
+          >
             {formatTime(seconds)}
           </span>
         </div>
-        
+
         <Button
-          variant={isRunning ? "destructive" : "warm"}
+          variant={isRunning ? "destructive" : "default"}
           size="lg"
-          className="w-40"
+          className={cn(
+            "w-40",
+            !isRunning && "gradient-warm border-none shadow-soft"
+          )}
           onClick={handleToggle}
         >
           {isRunning ? (
@@ -1558,11 +2009,15 @@ export function ContractionTimer() {
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-sage-light rounded-xl p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">משך ממוצע</p>
-            <p className="text-2xl font-bold text-secondary-foreground">{formatTime(avgDuration)}</p>
+            <p className="text-2xl font-bold text-secondary-foreground">
+              {formatTime(avgDuration)}
+            </p>
           </div>
           <div className="bg-peach-light rounded-xl p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">מרווח ממוצע</p>
-            <p className="text-2xl font-bold text-terracotta">{formatTime(avgInterval)}</p>
+            <p className="text-2xl font-bold text-terracotta">
+              {formatTime(avgInterval)}
+            </p>
           </div>
         </div>
       )}
@@ -1570,13 +2025,17 @@ export function ContractionTimer() {
       {/* History */}
       {contractions.length > 0 && (
         <div className="space-y-2 max-h-48 overflow-y-auto">
-          <p className="text-xs font-medium text-muted-foreground mb-2">היסטוריה</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">
+            היסטוריה
+          </p>
           {contractions.map((c, i) => (
             <div
               key={c.id}
               className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 text-sm"
             >
-              <span className="text-muted-foreground">צייר #{contractions.length - i}</span>
+              <span className="text-muted-foreground">
+                צייר #{contractions.length - i}
+              </span>
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1 text-foreground">
                   <Clock className="w-3 h-3" />
@@ -1773,6 +2232,285 @@ export function StatsCard({
 
 ---
 
+--- Filename: src/components/dashboard/DoulaDashboard.tsx ---
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { StatsCard } from "./StatsCard";
+import { ClientCard } from "./ClientCard";
+import { UpcomingEvents } from "./UpcomingEvents";
+import { AlertsWidget } from "./AlertsWidget";
+import {
+  Users,
+  Baby,
+  Calendar,
+  Clock,
+  Search,
+  Filter,
+  Loader2,
+  Plus,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+
+interface DoulaDashboardProps {
+  profile: any;
+}
+
+export function DoulaDashboard({ profile }: DoulaDashboardProps) {
+  const [clients, setClients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState("all"); // all, active, approaching, urgent
+
+  useEffect(() => {
+    fetchClients();
+    subscribeToLaborAlerts();
+  }, []);
+
+  // שליפת יולדות המקושרות לדולה הזו
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      // שליפת הריונות שבהם ה-doula_id הוא ה-ID של המשתמש הנוכחי
+      const { data, error } = await supabase
+        .from("pregnancies")
+        .select(
+          `
+          id,
+          estimated_due_date,
+          hospital_preference,
+          profiles:mother_id (
+            full_name,
+            avatar_url
+          )
+        `
+        )
+        .eq("doula_id", profile.id)
+        .eq("is_active", true);
+
+      if (error) throw error;
+
+      // עיבוד הנתונים לפורמט שה-UI מכיר
+      const formattedClients = data.map((item: any) => {
+        const dueDate = new Date(item.estimated_due_date);
+        const today = new Date();
+        const diffWeeks = Math.floor(
+          (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 7)
+        );
+        const currentWeek = 40 - diffWeeks;
+
+        return {
+          id: item.id,
+          name: item.profiles.full_name,
+          week: currentWeek,
+          dueDate: new Date(item.estimated_due_date).toLocaleDateString(
+            "he-IL"
+          ),
+          location: item.hospital_preference || "לא נקבע",
+          status: currentWeek >= 38 ? "approaching" : "active", // לוגיקה פשוטה לסטטוס
+          lastUpdate: "עודכן לאחרונה היום",
+        };
+      });
+
+      setClients(formattedClients);
+    } catch (error: any) {
+      toast.error("שגיאה בטעינת נתונים: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // האזנה לצירים בזמן אמת (Real-time)
+  const subscribeToLaborAlerts = () => {
+    const channel = supabase
+      .channel("labor_notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "contractions" },
+        (payload) => {
+          // כאן היינו בודקים אם הציר שייך לאחת היולדות של הדולה
+          toast("התראה: ציר חדש דווח!", {
+            description: "אחת היולדות שלך התחילה תזמון צירים כעת.",
+            action: {
+              label: "צפי בנתונים",
+              onClick: () => console.log("View data"),
+            },
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  // סינון לקוחות לפי חיפוש וטאבים
+  const filteredClients = clients.filter((c) => {
+    const matchesSearch = c.name.includes(searchTerm);
+    if (filter === "all") return matchesSearch;
+    return matchesSearch && c.status === filter;
+  });
+
+  return (
+    <div className="p-4 md:p-8 space-y-8 animate-fade-in">
+      {/* Header עם פעולות מהירות */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/50 pb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            שלום, {profile.full_name.split(" ")[0]} 👋
+          </h1>
+          <p className="text-sm md:text-base text-muted-foreground">
+            הנה מבט על היולדות שלך והפעילויות להיום
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" size="sm" className="bg-white gap-2">
+            <Filter className="w-4 h-4" />
+            סינון
+          </Button>
+          <Button size="sm" className="gradient-warm gap-2 shadow-soft">
+            <Plus className="w-4 h-4" />
+            הוספת יולדת
+          </Button>
+        </div>
+      </header>
+
+      {/* Stats Row - נתונים מסוכמים */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="יולדות פעילות"
+          value={clients.length}
+          subtitle={`${
+            clients.filter((c) => c.status === "approaching").length
+          } מתקרבות ללידה`}
+          icon={Users}
+          variant="warm"
+        />
+        <StatsCard
+          title="לידות החודש"
+          value="4"
+          subtitle="2 מעל הממוצע שלך"
+          icon={Baby}
+          variant="sage"
+          trend={{ value: 12, isPositive: true }}
+        />
+        <StatsCard
+          title="פגישות השבוע"
+          value="6"
+          subtitle="3 פגישות הכנה היום"
+          icon={Calendar}
+          variant="default"
+        />
+        <StatsCard
+          title="במעקב צירים"
+          value={clients.filter((c) => c.status === "urgent").length}
+          subtitle="דורשות תשומת לב מיידית"
+          icon={Clock}
+          variant="accent"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* עמודה מרכזית: ניהול יולדות */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border">
+            <div className="relative flex-1">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="חיפוש לפי שם יולדת..."
+                className="pr-10 border-none bg-transparent focus-visible:ring-0 text-right"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-1 bg-muted p-1 rounded-xl">
+              <button
+                onClick={() => setFilter("all")}
+                className={cn(
+                  "px-4 py-1.5 text-xs font-bold rounded-lg transition-all",
+                  filter === "all"
+                    ? "bg-white shadow-sm"
+                    : "text-muted-foreground"
+                )}
+              >
+                הכל
+              </button>
+              <button
+                onClick={() => setFilter("approaching")}
+                className={cn(
+                  "px-4 py-1.5 text-xs font-bold rounded-lg transition-all",
+                  filter === "approaching"
+                    ? "bg-white shadow-sm text-terracotta"
+                    : "text-muted-foreground"
+                )}
+              >
+                קרוב ללידה
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <Loader2 className="w-10 h-10 animate-spin mb-4 text-primary" />
+              <p>טוען נתוני יולדות...</p>
+            </div>
+          ) : filteredClients.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredClients.map((client) => (
+                <ClientCard key={client.id} {...client} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-muted/30 border-2 border-dashed rounded-3xl p-12 text-center">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-bold">לא נמצאו יולדות</h3>
+              <p className="text-muted-foreground mt-1">
+                שלחי קישור הצטרפות ליולדת כדי שתופיע כאן.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* עמודה צידית: התראות ולוח זמנים */}
+        <div className="space-y-8">
+          <AlertsWidget />
+          <UpcomingEvents />
+
+          {/* Quick Tools Widget */}
+          <div className="bg-gradient-to-br from-sage to-sage-light p-6 rounded-3xl text-white shadow-soft">
+            <h3 className="font-bold mb-2 flex items-center gap-2">
+              <Baby className="w-5 h-5" />
+              ליווי בזמן אמת
+            </h3>
+            <p className="text-xs opacity-90 mb-4 leading-relaxed">
+              המערכת מנטרת צירים וסטטיסטיקות של היולדות שלך. במקרה של זיהוי
+              לידה, תקבלי התראה כאן ובנייד.
+            </p>
+            <Button
+              variant="secondary"
+              className="w-full text-sage font-bold hover:bg-white transition-colors"
+            >
+              פתיחת מפת לידות חיה
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// פונקציית עזר לעיצוב מותנה
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(" ");
+}
+
+
+---
+
 --- Filename: src/components/dashboard/WeeklyProgress.tsx ---
 import { cn } from "@/lib/utils";
 
@@ -1860,114 +2598,253 @@ export function WeeklyProgress({ currentWeek, className }: WeeklyProgressProps) 
 ---
 
 --- Filename: src/components/layout/Sidebar.tsx ---
-import { 
-  Home, 
-  Users, 
-  Calendar, 
-  Timer, 
-  FileText, 
-  Bell, 
+import { useState } from "react";
+import {
+  Home,
+  Users,
+  Calendar,
+  Timer,
+  FileText,
+  Bell,
   Settings,
-  Baby
+  Baby,
+  UserPlus,
+  Check,
+  LogOut,
+  ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface NavItem {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  href: string;
-  badge?: number;
-}
-
-const navItems: NavItem[] = [
-  { icon: Home, label: "דאשבורד", href: "/" },
-  { icon: Users, label: "יולדות", href: "/clients", badge: 12 },
-  { icon: Calendar, label: "יומן", href: "/calendar" },
-  { icon: Timer, label: "תזמון צירים", href: "/contractions" },
-  { icon: FileText, label: "סיכומים", href: "/summaries" },
-  { icon: Bell, label: "התראות", href: "/notifications", badge: 3 },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface SidebarProps {
   activeItem?: string;
   onNavigate?: (href: string) => void;
+  profile: any;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function Sidebar({ activeItem = "/", onNavigate }: SidebarProps) {
+export function Sidebar({
+  activeItem = "/",
+  onNavigate,
+  profile,
+  isOpen = false,
+  onClose,
+}: SidebarProps) {
+  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
+
+  // הגדרת תפריט הניווט - סינון לפי תפקיד המשתמש
+  const navItems = [
+    { icon: Home, label: "דאשבורד", href: "/", roles: ["mother", "doula"] },
+    {
+      icon: Users,
+      label: "היולדות שלי",
+      href: "/clients",
+      roles: ["doula"],
+      badge: 12,
+    },
+    {
+      icon: Calendar,
+      label: "יומן פגישות",
+      href: "/calendar",
+      roles: ["mother", "doula"],
+    },
+    {
+      icon: Timer,
+      label: "תזמון צירים",
+      href: "/contractions",
+      roles: ["mother", "doula"],
+    },
+    {
+      icon: FileText,
+      label: profile?.role === "doula" ? "סיכומי לידה" : "תוכנית לידה",
+      href: "/docs",
+      roles: ["mother", "doula"],
+    },
+    {
+      icon: Bell,
+      label: "התראות",
+      href: "/notifications",
+      roles: ["mother", "doula"],
+      badge: 3,
+    },
+  ].filter((item) => item.roles.includes(profile?.role || "mother"));
+
+  const handleCopyInvite = () => {
+    if (!profile?.id) return;
+    const inviteLink = `${window.location.origin}/invite?doulaId=${profile.id}`;
+    navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    toast.success("קישור הזמנה הועתק!", {
+      description: "שלחי אותו ליולדת להרשמה מהירה תחתייך.",
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+    toast.info("התנתקת מהמערכת");
+  };
+
+  // חילוץ ראשי תיבות לשם המשתמש
+  const getInitials = (name: string) => {
+    return (
+      name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .substring(0, 2) || "??"
+    );
+  };
+
   return (
-    <aside className="fixed right-0 top-0 h-screen w-64 bg-sidebar border-l border-sidebar-border flex flex-col">
-      {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl gradient-warm flex items-center justify-center shadow-soft">
-            <Baby className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg text-foreground">SmartDoula</h1>
-            <p className="text-xs text-muted-foreground">ניהול לידה חכם</p>
+    <>
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={cn(
+          "fixed right-0 top-0 h-screen w-64 bg-sidebar border-l border-sidebar-border flex flex-col z-50 transition-transform duration-300 lg:translate-x-0",
+          isOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        {/* Logo & Header */}
+        <div className="p-6 border-b border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl gradient-warm flex items-center justify-center shadow-soft shrink-0">
+              <Baby className="w-5 h-5 text-white" />
+            </div>
+            <div className="overflow-hidden">
+              <h1 className="font-bold text-lg text-foreground leading-tight">
+                SmartDoula
+              </h1>
+              <p className="text-[10px] text-muted-foreground truncate">
+                {profile?.role === "doula"
+                  ? "מערכת ניהול דולה"
+                  : "ליווי היריון אישי"}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => {
-          const isActive = activeItem === item.href;
-          return (
-            <button
-              key={item.href}
-              onClick={() => onNavigate?.(item.href)}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
-                isActive 
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-soft" 
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              )}
-            >
-              <item.icon className={cn(
-                "w-5 h-5",
-                isActive ? "text-primary" : "text-muted-foreground"
-              )} />
-              <span className="flex-1 text-right">{item.label}</span>
-              {item.badge && (
-                <span className={cn(
-                  "px-2 py-0.5 rounded-full text-xs font-medium",
-                  isActive 
-                    ? "bg-primary text-primary-foreground" 
-                    : "bg-muted text-muted-foreground"
-                )}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+        {/* Main Navigation */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+          {navItems.map((item) => {
+            const isActive = activeItem === item.href;
+            return (
+              <button
+                key={item.href}
+                onClick={() => {
+                  onNavigate?.(item.href);
+                  onClose?.();
+                }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group",
+                  isActive
+                    ? "bg-primary text-white shadow-soft"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    "w-5 h-5 shrink-0",
+                    isActive
+                      ? "text-white"
+                      : "text-muted-foreground group-hover:text-primary"
+                  )}
+                />
+                <span className="flex-1 text-right">{item.label}</span>
+                {item.badge && !isActive && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
 
-      {/* Settings */}
-      <div className="p-4 border-t border-sidebar-border">
-        <button
-          onClick={() => onNavigate?.("/settings")}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all duration-200"
-        >
-          <Settings className="w-5 h-5 text-muted-foreground" />
-          <span className="flex-1 text-right">הגדרות</span>
-        </button>
-      </div>
+          {/* Invite Section (Only for Doula) */}
+          {profile?.role === "doula" && (
+            <div className="mt-8 px-2 space-y-3">
+              <div className="h-px bg-sidebar-border w-full my-4" />
+              <p className="text-[11px] font-semibold text-muted-foreground px-2 uppercase tracking-wider">
+                ניהול לקוחות
+              </p>
+              <Button
+                onClick={handleCopyInvite}
+                className={cn(
+                  "w-full gap-2 font-bold transition-all duration-300 shadow-md h-12 rounded-xl",
+                  copied
+                    ? "bg-sage text-white"
+                    : "gradient-warm text-white hover:opacity-90"
+                )}
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    הקישור הועתק
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4" />
+                    צירוף יולדת חדשה
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </nav>
 
-      {/* User Profile */}
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <div className="w-10 h-10 rounded-full bg-sage-light flex items-center justify-center">
-            <span className="text-sm font-semibold text-secondary-foreground">מר</span>
-          </div>
-          <div className="flex-1 text-right">
-            <p className="text-sm font-medium text-foreground">מירב רוזנברג</p>
-            <p className="text-xs text-muted-foreground">דולה מוסמכת</p>
+        {/* Bottom Actions */}
+        <div className="p-4 space-y-1 border-t border-sidebar-border">
+          <button
+            onClick={() => onNavigate?.("/settings")}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
+          >
+            <Settings className="w-5 h-5 text-muted-foreground" />
+            <span className="flex-1 text-right">הגדרות חשבון</span>
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/5 transition-all"
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            <span className="flex-1 text-right">התנתקות</span>
+          </button>
+        </div>
+
+        {/* User Profile Mini-Card */}
+        <div className="p-4 bg-sidebar-accent/30 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 bg-white/50 p-3 rounded-2xl border border-sidebar-border">
+            <div className="w-10 h-10 rounded-full gradient-sage flex items-center justify-center border-2 border-white shadow-sm shrink-0">
+              <span className="text-xs font-bold text-secondary-foreground uppercase">
+                {getInitials(profile?.full_name)}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0 text-right">
+              <p className="text-sm font-bold text-foreground truncate">
+                {profile?.full_name}
+              </p>
+              <p className="text-[10px] text-muted-foreground font-medium">
+                {profile?.role === "doula" ? "דולה מוסמכת" : "אמא בהיריון"}
+              </p>
+            </div>
+            <ChevronLeft className="w-4 h-4 text-muted-foreground/50" />
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 

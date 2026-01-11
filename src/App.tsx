@@ -5,11 +5,18 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Index from "./pages/Index";
+
+// Layouts & Pages
+import MainLayout from "@/components/layout/MainLayout";
 import AuthPage from "./pages/Auth";
 import InviteRegister from "./pages/InviteRegister";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
+
+// Dashboard Pages
+import Index from "./pages/Index"; // זה יהפוך להיות רק התצוגה של הדאשבורד
+import ClientsList from "./pages/doula/ClientsList";
+import ClientDetail from "./pages/doula/ClientDetail";
 
 const queryClient = new QueryClient();
 
@@ -18,13 +25,11 @@ const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // בדיקת סשן נוכחי
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // האזנה לשינויים בהתחברות (Logout/Login)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -36,8 +41,8 @@ const App = () => {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center gradient-subtle">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      <div className="h-screen w-full flex items-center justify-center">
+        <Loader2 className="animate-spin" />
       </div>
     );
   }
@@ -49,18 +54,25 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* דפים ציבוריים */}
+            {/* דפים ללא Layout (התחברות/הרשמה) */}
             <Route
               path="/auth"
               element={!session ? <AuthPage /> : <Navigate to="/" />}
             />
             <Route path="/invite" element={<InviteRegister />} />
 
-            {/* דפים מוגנים */}
-            <Route
-              path="/"
-              element={session ? <Index /> : <Navigate to="/auth" />}
-            />
+            {/* דפים מוגנים בתוך המערכת */}
+            {session && (
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/clients" element={<ClientsList />} />
+                <Route path="/client/:id" element={<ClientDetail />} />
+                {/* אפשר להוסיף כאן עוד נתיבים: /calendar, /settings וכו' */}
+              </Route>
+            )}
+
+            {/* הפניה לדף התחברות אם אין סשן */}
+            {!session && <Route path="*" element={<Navigate to="/auth" />} />}
 
             <Route path="*" element={<NotFound />} />
           </Routes>
