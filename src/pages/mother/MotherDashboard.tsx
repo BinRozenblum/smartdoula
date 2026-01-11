@@ -1,9 +1,10 @@
-// src/components/dashboard/MotherDashboard.tsx
-import { WeeklyProgress } from "./WeeklyProgress";
-import { ContractionTimer } from "./ContractionTimer";
-import { AlertsWidget } from "./AlertsWidget";
+import { useOutletContext } from "react-router-dom";
+import { WeeklyProgress } from "../../components/dashboard/WeeklyProgress";
+import { ContractionTimer } from "../../components/dashboard/ContractionTimer";
+import { AlertsWidget } from "../../components/dashboard/AlertsWidget";
 
-export function MotherDashboard({ profile }: { profile: any }) {
+export function MotherDashboard() {
+  const { profile } = useOutletContext<{ profile: any }>();
   return (
     <div className="p-4 md:p-8 space-y-8 animate-fade-in">
       <header>

@@ -92,7 +92,7 @@ export default function ClientsList() {
             }
             location="ביה''ח המתוכנן"
             status={client.is_active ? "active" : "approaching"}
-            onClick={() => navigate(`/client/${client.id}`)}
+            onClick={() => navigate(`/doula/client/${client.id}`)}
           />
         ))}
         {filteredClients.length === 0 && (

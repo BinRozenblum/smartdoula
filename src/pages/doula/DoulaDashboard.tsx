@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { StatsCard } from "./StatsCard";
-import { ClientCard } from "./ClientCard";
-import { UpcomingEvents } from "./UpcomingEvents";
-import { AlertsWidget } from "./AlertsWidget";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { ClientCard } from "@/components/dashboard/ClientCard";
+import { UpcomingEvents } from "@/components/dashboard/UpcomingEvents";
+import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
 import {
   Users,
   Baby,
@@ -17,12 +17,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useNavigate, useOutletContext } from "react-router-dom";
 
-interface DoulaDashboardProps {
-  profile: any;
-}
-
-export function DoulaDashboard({ profile }: DoulaDashboardProps) {
+export function DoulaDashboard() {
+  const navigate = useNavigate();
+  const { profile } = useOutletContext<{ profile: any }>();
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -224,7 +223,11 @@ export function DoulaDashboard({ profile }: DoulaDashboardProps) {
           ) : filteredClients.length > 0 ? (
             <div className="grid gap-4">
               {filteredClients.map((client) => (
-                <ClientCard key={client.id} {...client} />
+                <ClientCard
+                  key={client.id}
+                  {...client}
+                  onClick={() => navigate(`/doula/client/${client.id}`)}
+                />
               ))}
             </div>
           ) : (

@@ -1,105 +1,68 @@
-import { useEffect, useState } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { Toaster } from "@/components/ui/sonner";
 
-// Layouts & Pages
-import MainLayout from "@/components/layout/MainLayout";
+// Layouts
+import DoulaLayout from "@/components/layout/doula/DoulaLayout";
+import MotherLayout from "@/components/layout/mother/MotherLayout";
+
+// General Pages
 import AuthPage from "./pages/Auth";
+import RootRedirect from "./pages/RootRedirect";
 import InviteRegister from "./pages/InviteRegister";
 import NotFound from "./pages/NotFound";
-import { Loader2 } from "lucide-react";
 
-// Dashboard Pages
-import Index from "./pages/Index"; // זה יהפוך להיות רק התצוגה של הדאשבורד
+// Doula Pages
+import {DoulaDashboard} from "./pages/doula/DoulaDashboard";
 import ClientsList from "./pages/doula/ClientsList";
 import ClientDetail from "./pages/doula/ClientDetail";
-import Settings from "./pages/mother/Settings";
-
-import ContractionTimerPage from "./pages/mother/ContractionTimerPage";
+import DoulaSettings from "./pages/doula/DoulaSettings";
 import NotificationsPage from "./pages/doula/NotificationsPage";
 import LiveMonitor from "./pages/doula/LiveMonitor";
 
-{
-  /* דפים לאמא */
-}
+// Mother Pages
+import {MotherDashboard} from "./pages/mother/MotherDashboard";
+import MotherSettings from "./pages/mother/Settings";
+import ContractionTimerPage from "./pages/mother/ContractionTimerPage";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* דפים ללא Layout (התחברות/הרשמה) */}
-            <Route
-              path="/auth"
-              element={!session ? <AuthPage /> : <Navigate to="/" />}
-            />
-            <Route path="/invite" element={<InviteRegister />} />
+      <Toaster />
+      <BrowserRouter>
+        <Routes>
+          {/* 1. דפים ציבוריים */}
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/invite" element={<InviteRegister />} />
 
-            {/* דפים מוגנים בתוך המערכת */}
-            {session && (
-              <Route element={<MainLayout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/clients" element={<ClientsList />} />
-                <Route path="/client/:id" element={<ClientDetail />} />
-                {/* אפשר להוסיף כאן עוד נתיבים: /calendar, /settings וכו' */}
-                <Route path="/settings" element={<Settings />} />
+          {/* 2. ניתוב ראשי חכם */}
+          <Route path="/" element={<RootRedirect />} />
 
-                <Route
-                  path="/contractions"
-                  element={<ContractionTimerPage />}
-                />
+          {/* 3. אזור הדולה - הכל תחת /doula */}
+          <Route path="/doula" element={<DoulaLayout />}>
+            <Route index element={<DoulaDashboard />} />{" "}
+            {/* דף הבית של הדולה */}
+            <Route path="clients" element={<ClientsList />} />
+            <Route path="client/:id" element={<ClientDetail />} />
+            <Route path="settings" element={<DoulaSettings />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="live-monitor/:clientId" element={<LiveMonitor />} />
+          </Route>
 
-                {/* דפים לדולה */}
-                <Route path="/notifications" element={<NotificationsPage />} />
-                <Route
-                  path="/live-monitor/:clientId"
-                  element={<LiveMonitor />}
-                />
-              </Route>
-            )}
+          {/* 4. אזור האמא - הכל תחת /mother */}
+          <Route path="/mother" element={<MotherLayout />}>
+            <Route index element={<MotherDashboard />} />{" "}
+            {/* דף הבית של האמא */}
+            <Route path="settings" element={<MotherSettings />} />
+            <Route path="contractions" element={<ContractionTimerPage />} />
+            {/* <Route path="birth-plan" element={<BirthPlan />} /> */}
+          </Route>
 
-            {/* הפניה לדף התחברות אם אין סשן */}
-            {!session && <Route path="*" element={<Navigate to="/auth" />} />}
-
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 };

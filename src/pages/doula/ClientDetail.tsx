@@ -16,7 +16,8 @@ import {
   Phone,
   FileText,
   Baby,
-  MessageSquare,Activity,
+  MessageSquare,
+  Activity,
   MapPin,
   ArrowRight,
   Loader2,
@@ -94,7 +95,7 @@ export default function ClientDetail() {
     return (
       <div className="p-8 text-center space-y-4">
         <h2 className="text-2xl font-bold">לא נמצאו נתונים</h2>
-        <Button onClick={() => navigate("/clients")}>חזרה לרשימה</Button>
+        <Button onClick={() => navigate("/doula/clients")}>חזרה לרשימה</Button>
       </div>
     );
   }
@@ -119,7 +120,7 @@ export default function ClientDetail() {
       <Button
         variant="ghost"
         className="gap-2 text-muted-foreground hover:text-foreground p-0 hover:bg-transparent"
-        onClick={() => navigate("/clients")}
+        onClick={() => navigate("/doula/clients")}
       >
         <ArrowRight className="w-4 h-4" />
         חזרה לרשימת היולדות
@@ -180,7 +181,7 @@ export default function ClientDetail() {
         </div>
 
         <Button
-          onClick={() => navigate(`/live-monitor/${id}`)}
+          onClick={() => navigate(`/doula/live-monitor/${id}`)}
           className="bg-red-500 hover:bg-red-600 text-white gap-2 shadow-lg animate-pulse"
         >
           <Activity className="w-4 h-4" />
