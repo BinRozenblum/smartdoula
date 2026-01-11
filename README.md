@@ -1,73 +1,94 @@
-# Welcome to your Lovable project
+# 🤱 SmartDoula - מערכת ניהול חכמה לדולות ואמהות
 
-## Project info
+**SmartDoula** היא פלטפורמה מתקדמת המיועדת לייעל את התקשורת והליווי בין דולות לבין אמהות בהיריון. המערכת מספקת כלים בזמן אמת לניטור צירים, ניהול תיק רפואי, ומעקב אחר התקדמות ההיריון.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+---
 
-## How can I edit this code?
+## 🚀 תכונות עיקריות
 
-There are several ways of editing your application.
+### 👩‍⚕️ עבור הדולה (Doula Dashboard)
 
-**Use Lovable**
+- **ניהול יולדות:** תצוגה מרוכזת של כל היולדות הפעילות, כולל שבוע היריון, תל"מ וסטטוס.
+- **מוניטור צירים חי (Live Monitor):** מעקב בזמן אמת אחר תזמון צירים של יולדת ברגע האמת.
+- **תיק יולדת דיגיטלי:** ניהול היסטוריית ליווי, הערות רפואיות, העדפות לידה וסיכומי לידה.
+- **מערכת התראות:** קבלת עדכונים מידיים כאשר יולדת מתחילה לתזמן צירים.
+- **ניהול אישי:** הגדרות פרופיל מקצועי ואיסוף פרטים ליצירת קשר.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### 🤰 עבור האמא (Mother Dashboard)
 
-Changes made via Lovable will be committed automatically to this repo.
+- **מעקב שבועי:** תצוגה ויזואלית של התקדמות ההיריון (שבוע + ימים).
+- **תזמון צירים (Contraction Timer):** כלי פשוט ומדויק למדידת אורך ותדירות הצירים עם אפשרות לדירוג עוצמה.
+- **תיק רפואי והגדרות:** ניהול מידע קריטי כמו סוג דם, אלרגיות, ומחלות רקע המשותפים עם הדולה בבטחה.
+- **תוכנית לידה:** מקום לריכוז ההעדפות והרצונות ליום הלידה.
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🛠 טכנולוגיות (Tech Stack)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+המערכת בנויה על גבי התשתית המודרנית והמהירה ביותר:
 
-Follow these steps:
+- **Frontend:** React 18 + TypeScript + Vite.
+- **Styling:** Tailwind CSS + Shadcn/UI (Radix UI).
+- **Backend & DB:** Supabase (PostgreSQL).
+- **Realtime:** Supabase Realtime (לעדכוני צירים בזמן אמת).
+- **State Management:** TanStack Query (React Query) v5.
+- **Icons:** Lucide React.
+- **Components:** Framer Motion (אנימציות), Recharts (גרפים).
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 📁 מבנה הפרויקט
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```yaml
+src/
+├── components/          # רכיבים גנריים (UI, Dashboard, Layout)
+│   ├── layout/          # Layouts נפרדים לדולה ולאמא
+│   └── dashboard/       # ווידג'טים וכרטיסים לתצוגה
+├── hooks/               # Custom Hooks (לוגיקה משותפת)
+├── integrations/        # חיבור ללוגיקת Supabase
+├── lib/                 # פונקציות עזר (Utils)
+└── pages/               # דפי המערכת
+    ├── doula/           # דפים ייחודיים לדולה (Clients, Monitor, Settings)
+    ├── mother/          # דפים ייחודיים לאמא (Timer, Settings)
+    └── Auth.tsx         # מערכת התחברות והרשמה חכמה
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 💻 התקנה והרצה מקומית
 
-**Use GitHub Codespaces**
+1.  **שכפול המאגר:**
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+    ```bash
+    git clone [repository-url]
+    cd smartdoula
+    ```
 
-## What technologies are used for this project?
+2.  **התקנת תלויות:**
 
-This project is built with:
+    ```bash
+    npm install
+    ```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+3.  **הגדרת משתני סביבה:**
+    צרו קובץ `.env` והוסיפו את מפתחות ה-Supabase שלכם:
 
-## How can I deploy this project?
+    ```env
+    VITE_SUPABASE_URL=your_url
+    VITE_SUPABASE_PUBLISHABLE_KEY=your_key
+    ```
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+4.  **הרצה:**
+    ```bash
+    npm run dev
+    ```
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## 🛡 אבטחה ופרטיות
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+המערכת משתמשת ב-**Supabase Auth** לניהול משתמשים ו-**Row Level Security (RLS)** כדי להבטיח שכל דולה תראה רק את היולדות שמשויכות אליה, וכל אמא תראה רק את המידע האישי שלה.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+**נבנה באהבה עבור קהילת הדולות והאמהות. ✨**
