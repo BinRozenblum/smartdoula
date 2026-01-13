@@ -136,6 +136,7 @@ export default function ClientDetail() {
         estimated_due_date: formData.estimated_due_date,
         number_of_fetuses: formData.number_of_fetuses,
         g_p_summary: formData.g_p_summary,
+        birth_plan_notes: formData.birth_plan_notes,
 
         // גיבוי ותגיות
         backup_doula_name: formData.backup_doula_name,
@@ -336,8 +337,12 @@ export default function ClientDetail() {
 
         <TabsContent value="plan" dir="rtl">
           <BirthPlanViewer
-            pregnancyId={id!}
-            initialData={data.birth_plan_notes}
+            // מעבירים את המידע מתוך ה-formData הכללי
+            plan={formData.birth_plan_notes}
+            // פונקציה שמעדכנת את ה-formData הראשי
+            onChange={(newPlan) =>
+              setFormData({ ...formData, birth_plan_notes: newPlan })
+            }
             isEditable={isEditing}
           />
         </TabsContent>

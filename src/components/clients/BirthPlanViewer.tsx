@@ -1,71 +1,56 @@
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { Save, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 
 interface BirthPlanProps {
-  pregnancyId: string;
-  initialData: any; // ה-JSON מתוך ה-DB
+  plan: any; // המידע מגיע מלמעלה
+  onChange: (newPlan: any) => void; // עדכון למעלה
   isEditable: boolean;
 }
 
 export function BirthPlanViewer({
-  pregnancyId,
-  initialData,
+  plan,
+  onChange,
   isEditable,
 }: BirthPlanProps) {
-  // מבנה ברירת מחדל אם אין נתונים
-  const [plan, setPlan] = useState(
-    initialData || {
-      environment: { dimmedLights: false, music: false, pools: false },
-      painManagement: { epidural: false, natural: true, gas: false },
-      notes: "",
-    }
-  );
-
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = async () => {
-    setSaving(true);
-    const { error } = await supabase
-      .from("pregnancies")
-      .update({ birth_plan_notes: plan })
-      .eq("id", pregnancyId);
-
-    if (error) toast.error("שגיאה בשמירה");
-    else toast.success("תוכנית הלידה עודכנה");
-    setSaving(false);
+  // וידוא שהאובייקט קיים למניעת קריסה
+  const safePlan = plan || {
+    environment: { dimmedLights: false, music: false, pools: false },
+    painManagement: { epidural: false, natural: true, gas: false },
+    notes: "",
   };
 
   const updateSection = (section: string, key: string, value: boolean) => {
-    setPlan((prev: any) => ({
-      ...prev,
-      [section]: { ...prev[section], [key]: value },
-    }));
+    const updated = {
+      ...safePlan,
+      [section]: { ...safePlan[section], [key]: value },
+    };
+    onChange(updated);
+  };
+
+  const updateNotes = (value: string) => {
+    const updated = { ...safePlan, notes: value };
+    onChange(updated);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold flex gap-2">
           <FileText /> תוכנית לידה
         </h3>
-       
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>אווירה וסביבה</CardTitle>
+            <CardTitle className="text-base">אווירה וסביבה</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={plan.environment?.dimmedLights}
+                checked={safePlan.environment?.dimmedLights}
                 onCheckedChange={(c) =>
                   updateSection("environment", "dimmedLights", c as boolean)
                 }
@@ -75,7 +60,7 @@ export function BirthPlanViewer({
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={plan.environment?.music}
+                checked={safePlan.environment?.music}
                 onCheckedChange={(c) =>
                   updateSection("environment", "music", c as boolean)
                 }
@@ -88,12 +73,12 @@ export function BirthPlanViewer({
 
         <Card>
           <CardHeader>
-            <CardTitle>ניהול כאב</CardTitle>
+            <CardTitle className="text-base">ניהול כאב</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={plan.painManagement?.epidural}
+                checked={safePlan.painManagement?.epidural}
                 onCheckedChange={(c) =>
                   updateSection("painManagement", "epidural", c as boolean)
                 }
@@ -103,7 +88,7 @@ export function BirthPlanViewer({
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={plan.painManagement?.natural}
+                checked={safePlan.painManagement?.natural}
                 onCheckedChange={(c) =>
                   updateSection("painManagement", "natural", c as boolean)
                 }
@@ -117,14 +102,14 @@ export function BirthPlanViewer({
 
       <Card>
         <CardHeader>
-          <CardTitle>הערות ובקשות מיוחדות</CardTitle>
+          <CardTitle className="text-base">הערות ובקשות מיוחדות</CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea
-            value={plan.notes}
-            onChange={(e) => setPlan({ ...plan, notes: e.target.value })}
+            value={safePlan.notes || ""}
+            onChange={(e) => updateNotes(e.target.value)}
             disabled={!isEditable}
-            className="min-h-[100px]"
+            className="min-h-[100px] bg-white"
           />
         </CardContent>
       </Card>
