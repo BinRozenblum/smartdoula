@@ -70,7 +70,8 @@ export default function ContractionTimerPage() {
     if (!pregnancyId) return;
 
     try {
-      // 1. יצירת רשומה בטבלה
+      // יצירת רשומה בטבלה בלבד!
+      // השרת (Trigger) כבר יחליט אם לשלוח התראה לדולה או לא.
       const { data, error } = await supabase
         .from("contractions")
         .insert({
@@ -83,22 +84,11 @@ export default function ContractionTimerPage() {
       if (error) throw error;
       setActiveContraction(data);
 
-      // 2. שליחת התראה לדולה (רק אם מוגדרת דולה)
-      if (doulaId) {
-        await supabase.from("notifications").insert({
-          doula_id: doulaId,
-          mother_id: (await supabase.auth.getUser()).data.user?.id,
-          title: "התחלת תזמון צירים",
-          message: "היולדת התחילה לתזמן ציר כעת.",
-          type: "contraction",
-        });
-        toast.info("הדולה קיבלה עדכון על תחילת הציר");
-      }
+      // אין צורך ב-supabase.from("notifications").insert(...) כאן!
     } catch (e: any) {
       toast.error("שגיאה בהתחלה: " + e.message);
     }
   };
-
   // --- סיום ציר ---
   const handleStop = async () => {
     if (!activeContraction) return;
