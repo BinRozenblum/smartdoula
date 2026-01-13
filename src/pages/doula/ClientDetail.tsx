@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 
 import { WeeklyProgress } from "@/components/dashboard/WeeklyProgress";
-import { BirthPlanViewer } from "@/components/clients/BirthPlanViewer";
-import { DocumentsManager } from "@/components/clients/DocumentsManager";
+import { BirthPlanViewer } from "@/components/clients/tabs/BirthPlanViewer";
+import { DocumentsManager } from "@/components/clients/tabs/DocumentsManager";
 
 // יבוא הטאבים החדשים
 import { PersonalTab } from "@/components/clients/tabs/PersonalTab";
