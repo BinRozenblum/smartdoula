@@ -4,6 +4,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ClientCard } from "@/components/dashboard/ClientCard";
 import { UpcomingEvents } from "@/components/dashboard/UpcomingEvents";
 import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
+
 import {
   Users,
   Baby,
@@ -282,24 +283,6 @@ export function DoulaDashboard() {
         <div className="space-y-8">
           <AlertsWidget />
           <UpcomingEvents />
-
-          {/* Quick Tools Widget */}
-          <div className="bg-gradient-to-br from-sage to-sage-light p-6 rounded-3xl text-white shadow-soft">
-            <h3 className="font-bold mb-2 flex items-center gap-2">
-              <Baby className="w-5 h-5" />
-              ליווי בזמן אמת
-            </h3>
-            <p className="text-xs opacity-90 mb-4 leading-relaxed">
-              המערכת מנטרת צירים וסטטיסטיקות של היולדות שלך. במקרה של זיהוי
-              לידה, תקבלי התראה כאן ובנייד.
-            </p>
-            <Button
-              variant="secondary"
-              className="w-full text-sage font-bold hover:bg-white transition-colors"
-            >
-              פתיחת מפת לידות חיה
-            </Button>
-          </div>
         </div>
       </div>
     </div>

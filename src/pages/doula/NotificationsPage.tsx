@@ -82,7 +82,7 @@ export default function NotificationsPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6 animate-fade-in" dir="rtl">
       <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Bell className="w-6 h-6 text-primary" /> מרכז התראות
+        <Bell className="w-6 h-6 text-primary" /> מרכז ההתראות
       </h1>
 
       <div className="space-y-3">
