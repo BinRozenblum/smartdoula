@@ -20,50 +20,44 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Save, User, Baby, HeartPulse, MapPin } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  User,
+  Baby,
+  HeartPulse,
+  MapPin,
+  ClipboardList,
+} from "lucide-react";
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [role, setRole] = useState<"mother" | "doula">("mother");
 
-  // State לכל הנתונים בטופס
   const [formData, setFormData] = useState({
-    // נתוני פרופיל (משותף לכולם)
+    // פרופיל
     full_name: "",
     phone: "",
     address: "",
     date_of_birth: "",
-    avatar_url: "",
-    personal_notes: "", // פרטים אישיים/אודות
+    personal_notes: "",
 
-    // נתוני הריון (רק לאמא)
-    pregnancy_id: null, // לשמירה
+    // הריון (רק לאמא)
+    pregnancy_id: null,
     last_period_date: "",
     estimated_due_date: "",
     blood_type: "",
     allergies: "",
     background_diseases: "",
-    hospital_preference: "",
+    hospital_primary: "",
     number_of_fetuses: "1",
-    g_p_summary: "", // היסטוריית לידות
+    g_p_summary: "",
   });
 
   useEffect(() => {
     fetchUserData();
   }, []);
-
-  // חישוב אוטומטי של תל"מ לפי וסת אחרון
-  useEffect(() => {
-    if (formData.last_period_date && !formData.estimated_due_date) {
-      const lmp = new Date(formData.last_period_date);
-      const dueDate = new Date(lmp.setDate(lmp.getDate() + 280)); // +40 שבועות
-      setFormData((prev) => ({
-        ...prev,
-        estimated_due_date: dueDate.toISOString().split("T")[0],
-      }));
-    }
-  }, [formData.last_period_date]);
 
   const fetchUserData = async () => {
     try {
@@ -72,26 +66,23 @@ export default function Settings() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. שליפת פרופיל
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
+      if (!profile) return;
 
-      if (profileError) throw profileError;
       setRole(profile.role);
 
       let pregnancyData = {};
-
-      // 2. אם זו אמא - שליפת הריון פעיל
       if (profile.role === "mother") {
         const { data: preg } = await supabase
           .from("pregnancies")
           .select("*")
           .eq("mother_id", user.id)
           .eq("is_active", true)
-          .single();
+          .maybeSingle();
 
         if (preg) {
           pregnancyData = {
@@ -101,25 +92,23 @@ export default function Settings() {
             blood_type: preg.blood_type || "",
             allergies: preg.allergies || "",
             background_diseases: preg.background_diseases || "",
-            hospital_preference: preg.hospital_preference || "",
+            hospital_primary: preg.hospital_primary || "",
             number_of_fetuses: preg.number_of_fetuses?.toString() || "1",
             g_p_summary: preg.g_p_summary || "",
           };
         }
       }
 
-      // מיזוג הנתונים לסטייט
       setFormData({
         full_name: profile.full_name || "",
         phone: profile.phone || "",
         address: profile.address || "",
         date_of_birth: profile.date_of_birth || "",
-        avatar_url: profile.avatar_url || "",
         personal_notes: profile.personal_notes || "",
         ...pregnancyData,
       } as any);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Fetch error:", error);
       toast.error("שגיאה בטעינת נתונים");
     } finally {
       setLoading(false);
@@ -134,7 +123,7 @@ export default function Settings() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. שמירת פרופיל
+      // 1. עדכון פרופיל
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -148,18 +137,18 @@ export default function Settings() {
 
       if (profileError) throw profileError;
 
-      // 2. שמירת הריון (אם זו אמא)
+      // 2. עדכון הריון
       if (role === "mother" && formData.pregnancy_id) {
         const { error: pregError } = await supabase
           .from("pregnancies")
           .update({
             last_period_date: formData.last_period_date || null,
-            estimated_due_date: formData.estimated_due_date,
+            estimated_due_date: formData.estimated_due_date || null,
             blood_type: formData.blood_type,
             allergies: formData.allergies,
             background_diseases: formData.background_diseases,
-            hospital_preference: formData.hospital_preference,
-            number_of_fetuses: parseInt(formData.number_of_fetuses),
+            hospital_primary: formData.hospital_primary,
+            number_of_fetuses: parseInt(formData.number_of_fetuses) || 1,
             g_p_summary: formData.g_p_summary,
           })
           .eq("id", formData.pregnancy_id);
@@ -167,8 +156,10 @@ export default function Settings() {
         if (pregError) throw pregError;
       }
 
-      toast.success("השינויים נשמרו בהצלחה!");
+      toast.success("כל השינויים נשמרו בהצלחה!");
+      fetchUserData(); // רענון נתונים מהשרת
     } catch (error: any) {
+      console.error("Save error:", error);
       toast.error("שגיאה בשמירה: " + error.message);
     } finally {
       setSaving(false);
@@ -193,10 +184,8 @@ export default function Settings() {
     >
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">הגדרות פרופיל</h1>
-          <p className="text-muted-foreground">
-            ניהול המידע האישי {role === "mother" && "וההריוני"} שלך
-          </p>
+          <h1 className="text-3xl font-bold">הגדרות חשבון</h1>
+          <p className="text-muted-foreground">ניהול המידע האישי והרפואי שלך</p>
         </div>
         <Button
           onClick={handleSave}
@@ -216,20 +205,16 @@ export default function Settings() {
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]" dir="rtl">
           <TabsTrigger value="profile">פרטים אישיים</TabsTrigger>
           {role === "mother" && (
-            <TabsTrigger value="pregnancy">מעקב הריון</TabsTrigger>
+            <TabsTrigger value="pregnancy">מעקב הריון ורפואי</TabsTrigger>
           )}
         </TabsList>
 
-        {/* --- טאב פרטים אישיים --- */}
         <TabsContent value="profile" className="space-y-6" dir="rtl">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" /> מידע כללי
+                <User className="w-5 h-5 text-primary" /> מידע כללי
               </CardTitle>
-              <CardDescription>
-                פרטים אלו גלויים לדולה המלווה אותך
-              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
@@ -249,7 +234,7 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>תאריך לידה שלך</Label>
+                <Label>תאריך לידה</Label>
                 <Input
                   type="date"
                   value={formData.date_of_birth}
@@ -259,152 +244,139 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>כתובת מגורים</Label>
-                <div className="relative">
-                  <MapPin className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pr-9"
-                    value={formData.address}
-                    onChange={(e) => handleChange("address", e.target.value)}
-                  />
-                </div>
+                <Label>כתובת</Label>
+                <Input
+                  value={formData.address}
+                  onChange={(e) => handleChange("address", e.target.value)}
+                />
               </div>
               <div className="col-span-full space-y-2">
-                <Label>הערות אישיות / אודות</Label>
+                <Label>הערות אישיות (מה חשוב שהדולה תדע?)</Label>
                 <Textarea
-                  placeholder="כתבי כאן דברים שחשוב שהצוות ידע עלייך..."
                   value={formData.personal_notes}
                   onChange={(e) =>
                     handleChange("personal_notes", e.target.value)
                   }
-                  className="min-h-[100px]"
                 />
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* --- טאב מעקב הריון (רק לאמהות) --- */}
-        {role === "mother" && (
-          <TabsContent value="pregnancy" className="space-y-6" dir="rtl">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Baby className="w-5 h-5" /> פרטי ההיריון
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>תאריך וסת אחרון (LMP)</Label>
-                  <Input
-                    type="date"
-                    value={formData.last_period_date}
-                    onChange={(e) =>
-                      handleChange("last_period_date", e.target.value)
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>תאריך לידה משוער (תל"מ)</Label>
-                  <Input
-                    type="date"
-                    value={formData.estimated_due_date}
-                    onChange={(e) =>
-                      handleChange("estimated_due_date", e.target.value)
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    מחושב אוטומטית אם הוזן וסת אחרון
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label>מספר עוברים</Label>
-                  <Select
-                    value={formData.number_of_fetuses}
-                    onValueChange={(v) => handleChange("number_of_fetuses", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="בחר" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">עובר יחיד</SelectItem>
-                      <SelectItem value="2">תאומים</SelectItem>
-                      <SelectItem value="3">שלישייה</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>היסטוריית לידות (G/P)</Label>
-                  <Input
-                    placeholder="לדוגמה: G2P1"
-                    value={formData.g_p_summary}
-                    onChange={(e) =>
-                      handleChange("g_p_summary", e.target.value)
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
+        <TabsContent value="pregnancy" className="space-y-6" dir="rtl">
+          {/* פרטי ההריון */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Baby className="w-5 h-5 text-primary" /> פרטי ההיריון
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>תאריך וסת אחרון (LMP)</Label>
+                <Input
+                  type="date"
+                  value={formData.last_period_date}
+                  onChange={(e) =>
+                    handleChange("last_period_date", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>תאריך לידה משוער (תל"מ)</Label>
+                <Input
+                  type="date"
+                  value={formData.estimated_due_date}
+                  onChange={(e) =>
+                    handleChange("estimated_due_date", e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>מספר עוברים</Label>
+                <Select
+                  value={formData.number_of_fetuses}
+                  onValueChange={(v) => handleChange("number_of_fetuses", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">עובר יחיד</SelectItem>
+                    <SelectItem value="2">תאומים</SelectItem>
+                    <SelectItem value="3">שלישייה</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>היסטוריית לידות (G/P)</Label>
+                <Input
+                  placeholder="לדוגמה: G2 P1"
+                  value={formData.g_p_summary}
+                  onChange={(e) => handleChange("g_p_summary", e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-red-900">
-                  <HeartPulse className="w-5 h-5 text-red-500" /> מידע רפואי
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>סוג דם</Label>
-                  <Select
-                    value={formData.blood_type}
-                    onValueChange={(v) => handleChange("blood_type", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="בחר סוג דם" />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(
-                        (type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        )
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>בית חולים מועדף</Label>
-                  <Input
-                    placeholder="איפה את מתכננת ללדת?"
-                    value={formData.hospital_preference}
-                    onChange={(e) =>
-                      handleChange("hospital_preference", e.target.value)
-                    }
-                  />
-                </div>
-                <div className="col-span-full space-y-2">
-                  <Label>רגישויות ואלרגיות</Label>
-                  <Input
-                    placeholder="תרופות, מזון, לטקס..."
-                    value={formData.allergies}
-                    onChange={(e) => handleChange("allergies", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-full space-y-2">
-                  <Label>מחלות רקע / מצב רפואי מיוחד</Label>
-                  <Textarea
-                    placeholder="סוכרת הריון, לחץ דם, קרישיות יתר..."
-                    value={formData.background_diseases}
-                    onChange={(e) =>
-                      handleChange("background_diseases", e.target.value)
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
+          {/* מידע רפואי */}
+          <Card className="border-red-100 bg-red-50/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-900">
+                <HeartPulse className="w-5 h-5 text-red-500" /> מידע רפואי חשוב
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>סוג דם</Label>
+                <Select
+                  value={formData.blood_type}
+                  onValueChange={(v) => handleChange("blood_type", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="בחר" />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map(
+                      (t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>בית חולים מועדף</Label>
+                <Input
+                  value={formData.hospital_primary}
+                  onChange={(e) =>
+                    handleChange("hospital_primary", e.target.value)
+                  }
+                />
+              </div>
+              <div className="col-span-full space-y-2">
+                <Label>רגישויות ואלרגיות</Label>
+                <Input
+                  placeholder="תרופות, מזון..."
+                  value={formData.allergies}
+                  onChange={(e) => handleChange("allergies", e.target.value)}
+                />
+              </div>
+              <div className="col-span-full space-y-2">
+                <Label>מחלות רקע / מצב רפואי מיוחד</Label>
+                <Textarea
+                  placeholder="סוכרת הריון, לחץ דם..."
+                  value={formData.background_diseases}
+                  onChange={(e) =>
+                    handleChange("background_diseases", e.target.value)
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
