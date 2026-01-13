@@ -54,15 +54,7 @@ export function BirthPlanViewer({
         <h3 className="text-xl font-bold flex gap-2">
           <FileText /> תוכנית לידה
         </h3>
-        {isEditable && (
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="gradient-warm"
-          >
-            <Save className="w-4 h-4 ml-2" /> שמירה
-          </Button>
-        )}
+       
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

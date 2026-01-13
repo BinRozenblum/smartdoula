@@ -30,10 +30,10 @@ export default function DoulaSettings() {
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
-    address: "", // כתובת קליניקה/מגורים
-    personal_notes: "", // "אודות" / ביוגרפיה מקצועית
+    address: "",
+    personal_notes: "",
     avatar_url: "",
-    email: "", // לקריאה בלבד
+    email: "",
   });
 
   useEffect(() => {
@@ -51,10 +51,12 @@ export default function DoulaSettings() {
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle(); // שימוש ב-maybeSingle מונע שגיאה אם אין שורה
 
       if (error) throw error;
+      if (!profile) return;
 
+      // המרה למחרוזות ריקות כדי למנוע בעיות ב-Input
       setFormData({
         full_name: profile.full_name || "",
         phone: profile.phone || "",
@@ -79,39 +81,62 @@ export default function DoulaSettings() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .update({
           full_name: formData.full_name,
           phone: formData.phone,
           address: formData.address,
           personal_notes: formData.personal_notes,
-          // avatar_url יטופל בנפרד אם נוסיף העלאת תמונות
         })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        .select() // מחזיר מערך
+        .maybeSingle(); // מחזיר null במקום לזרוק שגיאה אם המערך ריק
 
       if (error) throw error;
 
+      // אם data הוא null, סימן שהעדכון לא תפס (בגלל RLS או ID שגוי)
+      if (!data) {
+        throw new Error(
+          "לא ניתן היה לשמור את השינויים. אנא בדוק הרשאות או נסה שוב."
+        );
+      }
+
+      // עדכון ה-State המקומי עם מה שחזר מהשרת
+      setFormData((prev) => ({
+        ...prev,
+        full_name: data.full_name || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        personal_notes: data.personal_notes || "",
+      }));
+
       toast.success("הפרופיל עודכן בהצלחה!");
+
+      // רענון כדי לעדכן את הסרגל צד
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
+      console.error("Save error:", error);
       toast.error("שגיאה בשמירה: " + error.message);
     } finally {
       setSaving(false);
     }
   };
-
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // יצירת ראשי תיבות לאווטאר
   const getInitials = (name: string) =>
     name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase();
+      ? name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase()
+      : "ME";
 
   if (loading)
     return (
@@ -125,20 +150,12 @@ export default function DoulaSettings() {
       className="max-w-3xl mx-auto p-4 md:p-8 space-y-8 animate-fade-in"
       dir="rtl"
     >
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            הגדרות פרופיל דולה
-          </h1>
-          <p className="text-muted-foreground">
-            נהלי את המידע העסקי והאישי שיוצג ללקוחותייך
-          </p>
-        </div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">הגדרות פרופיל</h1>
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="gradient-warm gap-2 shadow-md w-full md:w-auto"
+          className="gradient-warm gap-2"
         >
           {saving ? (
             <Loader2 className="animate-spin w-4 h-4" />
@@ -150,133 +167,63 @@ export default function DoulaSettings() {
       </div>
 
       <div className="grid gap-8 md:grid-cols-3">
-        {/* עמודה שמאלית - כרטיס פרופיל ויזואלי */}
+        {/* כרטיס פרופיל */}
         <div className="md:col-span-1 space-y-6">
           <Card className="text-center overflow-hidden">
             <div className="h-24 bg-gradient-to-r from-peach-light to-sage-light"></div>
             <div className="relative -mt-12 flex justify-center">
               <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
                 <AvatarImage src={formData.avatar_url} />
-                <AvatarFallback className="text-2xl font-bold bg-muted text-foreground">
+                <AvatarFallback className="text-2xl font-bold bg-muted">
                   {getInitials(formData.full_name)}
                 </AvatarFallback>
               </Avatar>
             </div>
-            <CardContent className="pt-4 pb-6">
-              <h3 className="font-bold text-xl">
-                {formData.full_name || "שם הדולה"}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">דולה מוסמכת</p>
-              <div className="flex justify-center gap-2">
-                <Button variant="outline" size="sm" className="w-full">
-                  העלאת תמונה
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* כרטיס סטטוס מהיר */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                סטטוס חשבון
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="font-bold">פעיל</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                המנוי שלך בתוקף עד 01/2026
-              </p>
+            <CardContent className="pt-4">
+              <h3 className="font-bold text-xl">{formData.full_name}</h3>
+              <p className="text-sm text-muted-foreground">דולה מוסמכת</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* עמודה ימנית - טופס עריכה */}
-        <div className="md:col-span-2 space-y-6">
+        {/* טופס עריכה */}
+        <div className="md:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <User className="w-5 h-5" /> פרטים אישיים ועסקיים
-              </CardTitle>
-              <CardDescription>
-                פרטים אלו עוזרים ליולדות ליצור איתך קשר
-              </CardDescription>
+              <CardTitle>פרטים אישיים</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>שם מלא / שם העסק</Label>
-                  <div className="relative">
-                    <User className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      className="pr-9"
-                      value={formData.full_name}
-                      onChange={(e) =>
-                        handleChange("full_name", e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>מספר טלפון</Label>
-                  <div className="relative">
-                    <Phone className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      className="pr-9"
-                      value={formData.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      dir="ltr"
-                      className="text-right"
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div className="space-y-2">
-                <Label>כתובת אימייל (להתחברות)</Label>
-                <div className="relative">
-                  <Mail className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pr-9 bg-muted/50"
-                    value={formData.email}
-                    disabled
-                  />
-                </div>
+                <Label>שם מלא</Label>
+                <Input
+                  value={formData.full_name}
+                  onChange={(e) => handleChange("full_name", e.target.value)}
+                />
               </div>
-
               <div className="space-y-2">
-                <Label>כתובת קליניקה / אזור שירות</Label>
-                <div className="relative">
-                  <MapPin className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pr-9"
-                    placeholder="לדוגמה: תל אביב והמרכז"
-                    value={formData.address}
-                    onChange={(e) => handleChange("address", e.target.value)}
-                  />
-                </div>
+                <Label>טלפון</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => handleChange("phone", e.target.value)}
+                  dir="ltr"
+                  className="text-right"
+                />
               </div>
-
               <div className="space-y-2">
-                <Label>אודות / אני מאמין</Label>
-                <div className="relative">
-                  <Briefcase className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Textarea
-                    className="min-h-[120px] pr-9"
-                    placeholder="ספרי קצת על הגישה שלך, ההסמכה והניסיון..."
-                    value={formData.personal_notes}
-                    onChange={(e) =>
-                      handleChange("personal_notes", e.target.value)
-                    }
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  טקסט זה יופיע בפרופיל שלך עבור היולדות.
-                </p>
+                <Label>אזור שירות / כתובת</Label>
+                <Input
+                  value={formData.address}
+                  onChange={(e) => handleChange("address", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>אודות</Label>
+                <Textarea
+                  value={formData.personal_notes}
+                  onChange={(e) =>
+                    handleChange("personal_notes", e.target.value)
+                  }
+                />
               </div>
             </CardContent>
           </Card>
