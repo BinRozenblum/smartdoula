@@ -13,6 +13,8 @@ import {
   Filter,
   Loader2,
   Plus,
+  Check,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +28,8 @@ export function DoulaDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all"); // all, active, approaching, urgent
+
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchClients();
@@ -119,6 +123,17 @@ export function DoulaDashboard() {
     return matchesSearch && c.status === filter;
   });
 
+  const handleCopyInvite = () => {
+    if (!profile?.id) return;
+    const inviteLink = `${window.location.origin}/invite?doulaId=${profile.id}`;
+    navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    toast.success("קישור הזמנה הועתק!", {
+      description: "שלחי אותו ליולדת להרשמה מהירה תחתייך.",
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-8 animate-fade-in">
       {/* Header עם פעולות מהירות */}
@@ -132,13 +147,31 @@ export function DoulaDashboard() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm" className="bg-white gap-2">
-            <Filter className="w-4 h-4" />
-            סינון
-          </Button>
-          <Button size="sm" className="gradient-warm gap-2 shadow-soft">
+          {/* <Button size="sm" className="gradient-warm gap-2 shadow-soft">
             <Plus className="w-4 h-4" />
-            הוספת יולדת
+            צירוף יולדת חדשה
+          </Button> */}
+
+          <Button
+            onClick={handleCopyInvite}
+            className={cn(
+              "w-full gap-2 font-bold transition-all duration-300 shadow-md h-12 rounded-xl",
+              copied
+                ? "bg-sage text-white"
+                : "gradient-warm text-white hover:opacity-90"
+            )}
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4" />
+                הקישור הועתק
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4" />
+                צירוף יולדת חדשה
+              </>
+            )}
           </Button>
         </div>
       </header>
