@@ -93,12 +93,14 @@ export function DoulaDashboard() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "contractions" },
         (payload) => {
-          // כאן היינו בודקים אם הציר שייך לאחת היולדות של הדולה
-          toast("התראה: ציר חדש דווח!", {
+          // חילוץ ה-ID של ההיריון מהרשומה החדשה שנוצרה בטבלה
+          const pregnancyId = payload.new.pregnancy_id;
+
+          toast("⚠️ התראה: ציר חדש דווח!", {
             description: "אחת היולדות שלך התחילה תזמון צירים כעת.",
             action: {
-              label: "צפי בנתונים",
-              onClick: () => console.log("View data"),
+              label: "צפי במוניטור",
+              onClick: () => navigate(`/doula/live-monitor/${pregnancyId}`),
             },
           });
         }
