@@ -6,3 +6,4 @@ data_context.py
 file_names.txt
 filtered_project_context.txt
 project_context.txt
+dist/
