@@ -19,7 +19,7 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourname.smartdoula",
+      "package": "com.smartdoula.app",
       "googleServicesFile": "./google-services.json"
     },
     "extra": {
