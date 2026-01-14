@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "100387071656",
+    "project_id": "smart-doula",
+    "storage_bucket": "smart-doula.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:100387071656:android:1f5b05b11ae9fb8132049d",
+        "android_client_info": {
+          "package_name": "com.smartdoula.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBT5Imyv3frYIhWKu5qnA4hfQMg1dpSdF0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
