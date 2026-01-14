@@ -40,12 +40,40 @@ export function SidebarBase({
   onClose,
 }: SidebarBaseProps) {
   const [copied, setCopied] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // הוספנו סטייט לטעינת יציאה
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-    toast.info("התנתקת מהמערכת");
+    try {
+      setIsLoggingOut(true);
+
+      // 1. קבלת המשתמש הנוכחי לפני הניתוק
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        // 2. מחיקת הטוקן ממסד הנתונים כדי למנוע שליחת התראות למכשיר זה עבור המשתמש הזה
+        await supabase
+          .from("profiles")
+          .update({ expo_push_token: null })
+          .eq("id", user.id);
+
+        console.log("Push token removed from DB");
+      }
+
+      // 3. ניקוי הטוקן מהזיכרון המקומי של הדפדפן
+      // זה חשוב כדי שה-Hook לא ינסה לסנכרן אותו מחדש בטעות
+      window.localStorage.removeItem("expo_push_token_buffer");
+    } catch (error) {
+      console.error("Error during logout cleanup:", error);
+    } finally {
+      // 4. ביצוע הניתוק בפועל (גם אם הניקוי נכשל)
+      await supabase.auth.signOut();
+      navigate("/auth");
+      toast.info("התנתקת מהמערכת");
+      setIsLoggingOut(false);
+    }
   };
 
   const handleCopyInvite = () => {
@@ -105,7 +133,6 @@ export function SidebarBase({
         {/* Main Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
           {items.map((item) => {
-            // בדיקה אם הקישור הנוכחי פעיל (כולל תתי נתיבים)
             const isActive =
               activeItem === item.href ||
               (item.href !== "/doula" &&
@@ -180,7 +207,6 @@ export function SidebarBase({
         <div className="p-4 space-y-1 border-t border-sidebar-border">
           <button
             onClick={() => {
-              // ניווט דינמי להגדרות בהתאם לתפקיד
               const settingsPath =
                 profile?.role === "doula"
                   ? "/doula/settings"
@@ -196,10 +222,13 @@ export function SidebarBase({
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/5 transition-all"
+            disabled={isLoggingOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/5 transition-all disabled:opacity-50"
           >
             <LogOut className="w-5 h-5 shrink-0" />
-            <span className="flex-1 text-right">התנתקות</span>
+            <span className="flex-1 text-right">
+              {isLoggingOut ? "מתנתק..." : "התנתקות"}
+            </span>
           </button>
         </div>
 

@@ -35,9 +35,10 @@ export function Sidebar({
   onClose,
 }: SidebarProps) {
   const [copied, setCopied] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
 
-  // הגדרת תפריט הניווט - סינון לפי תפקיד המשתמש
+  // הגדרת תפריט הניווט... (ללא שינוי)
   const navItems = [
     { icon: Home, label: "דאשבורד", href: "/", roles: ["mother", "doula"] },
     {
@@ -80,13 +81,33 @@ export function Sidebar({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // --- הפונקציה המעודכנת ---
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-    toast.info("התנתקת מהמערכת");
+    try {
+      setIsLoggingOut(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ expo_push_token: null })
+          .eq("id", user.id);
+      }
+
+      // מחיקה מהלוקל סטורג'
+      window.localStorage.removeItem("expo_push_token_buffer");
+    } catch (error) {
+      console.error("Error clearing token:", error);
+    } finally {
+      await supabase.auth.signOut();
+      navigate("/auth");
+      toast.info("התנתקת מהמערכת");
+      setIsLoggingOut(false);
+    }
   };
 
-  // חילוץ ראשי תיבות לשם המשתמש
   const getInitials = (name: string) => {
     return (
       name
@@ -168,7 +189,7 @@ export function Sidebar({
             );
           })}
 
-          {/* Invite Section (Only for Doula) */}
+          {/* Invite Section */}
           {profile?.role === "doula" && (
             <div className="mt-8 px-2 space-y-3">
               <div className="h-px bg-sidebar-border w-full my-4" />
@@ -212,10 +233,13 @@ export function Sidebar({
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/5 transition-all"
+            disabled={isLoggingOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/5 transition-all disabled:opacity-50"
           >
             <LogOut className="w-5 h-5 shrink-0" />
-            <span className="flex-1 text-right">התנתקות</span>
+            <span className="flex-1 text-right">
+              {isLoggingOut ? "מתנתק..." : "התנתקות"}
+            </span>
           </button>
         </div>
 
