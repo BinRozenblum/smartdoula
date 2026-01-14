@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Smart Doula",
+    "slug": "smart-doula",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourname.smartdoula"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.yourname.smartdoula",
+      "googleServicesFile": "./google-services.json" 
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1afdcd01-0d15-4a0a-b17b-40334536974e"
+      }
+    }
+  }
+}

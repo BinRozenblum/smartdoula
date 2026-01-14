@@ -13,7 +13,7 @@ import InviteRegister from "./pages/InviteRegister";
 import NotFound from "./pages/NotFound";
 
 // Doula Pages
-import {DoulaDashboard} from "./pages/doula/DoulaDashboard";
+import { DoulaDashboard } from "./pages/doula/DoulaDashboard";
 import ClientsList from "./pages/doula/ClientsList";
 import ClientDetail from "./pages/doula/ClientDetail";
 import DoulaSettings from "./pages/doula/DoulaSettings";
@@ -21,13 +21,17 @@ import NotificationsPage from "./pages/doula/NotificationsPage";
 import LiveMonitor from "./pages/doula/LiveMonitor";
 
 // Mother Pages
-import {MotherDashboard} from "./pages/mother/MotherDashboard";
+import { MotherDashboard } from "./pages/mother/MotherDashboard";
 import MotherSettings from "./pages/mother/Settings";
 import ContractionTimerPage from "./pages/mother/ContractionTimerPage";
+
+import { useMobilePushToken } from "@/hooks/useMobilePushToken"; // <--- הוסף את זה
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  useMobilePushToken(); // <--- הפעל את ה-Hook כאן, בתוך הקומפוננטה
+
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster />
