@@ -85,19 +85,29 @@ export function Sidebar({
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
 
-      if (user) {
-        await supabase
-          .from("profiles")
-          .update({ expo_push_token: null })
-          .eq("id", user.id);
+      // בדיקה האם אנחנו באפליקציה
+      const isApp = window.navigator.userAgent.includes("SmartDoulaApp");
+
+      if (isApp) {
+        console.log("📱 App logout detected - clearing push token...");
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          // מחיקת הטוקן
+          await supabase
+            .from("profiles")
+            .update({ expo_push_token: null })
+            .eq("id", user.id);
+        }
+
+        // מחיקה מהלוקל סטורג'
+        window.localStorage.removeItem("expo_push_token_buffer");
+      } else {
+        console.log("💻 Web logout detected - keeping push token active.");
       }
-
-      // מחיקה מהלוקל סטורג'
-      window.localStorage.removeItem("expo_push_token_buffer");
     } catch (error) {
       console.error("Error clearing token:", error);
     } finally {

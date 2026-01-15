@@ -8,8 +8,8 @@ import { WebView } from "react-native-webview";
 // *** חשוב: החלף ב-ID האמיתי של הפרויקט החדש מ-Expo ***
 const EXPO_PROJECT_ID = "1afdcd01-0d15-4a0a-b17b-40334536974e";
 
-// כתובת האתר של הדולה (Production URL)
-const WEBSITE_URL = "https://smart-doula.netlify.app/"; // או הכתובת האמיתית שלך
+// כתובת הבסיס של האתר (ללא סלאש בסוף עדיף, כדי למנוע כפילויות)
+const WEBSITE_BASE_URL = "https://smart-doula.netlify.app/auth/";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -21,6 +21,10 @@ Notifications.setNotificationHandler({
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
+
+  // ניהול ה-URL ב-State כדי שנוכל לשנות אותו בלחיצה על התראה
+  const [currentUrl, setCurrentUrl] = useState(WEBSITE_BASE_URL);
+
   const [expoPushToken, setExpoPushToken] = useState("");
   const [isWebViewLoaded, setIsWebViewLoaded] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
@@ -35,7 +39,40 @@ export default function App() {
     });
   }, []);
 
-  // 2. כפתור חזרה באנדרואיד
+  // 2. טיפול בלחיצה על התראות (Deep Linking)
+  useEffect(() => {
+    // א. טיפול בלחיצה כשהאפליקציה רצה ברקע או פתוחה
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content.data;
+        handleNotificationNavigation(data);
+      }
+    );
+
+    // ב. טיפול בלחיצה כשהאפליקציה הייתה סגורה לגמרי (Cold Start)
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        const data = response.notification.request.content.data;
+        handleNotificationNavigation(data);
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  // פונקציית עזר לניווט
+  const handleNotificationNavigation = (data: any) => {
+    // וידוא שזו ההתראה הנכונה ושיש לנו ID
+    if (data?.type === "CONTRACTION_ALERT" && data?.pregnancyId) {
+      const targetUrl = `${WEBSITE_BASE_URL}/doula/live-monitor/${data.pregnancyId}`;
+      console.log("🔔 Notification clicked! Navigating to:", targetUrl);
+
+      // שינוי ה-URL יגרום ל-WebView להיטען מחדש בעמוד הרצוי
+      setCurrentUrl(targetUrl);
+    }
+  };
+
+  // 3. כפתור חזרה באנדרואיד
   useEffect(() => {
     const onBackPress = () => {
       if (canGoBack && webViewRef.current) {
@@ -53,7 +90,7 @@ export default function App() {
     return () => backHandler.remove();
   }, [canGoBack]);
 
-  // 3. שליחת הטוקן לאתר (הזרקה אגרסיבית)
+  // 4. שליחת הטוקן לאתר (Sticky Mode)
   const sendTokenToWeb = () => {
     if (expoPushToken && webViewRef.current) {
       const message = JSON.stringify({
@@ -66,25 +103,22 @@ export default function App() {
       const jsCode = `
         (function() {
           try {
+            window.localStorage.setItem('expo_push_token_buffer', '${expoPushToken}');
             window.postMessage(${message}, "*");
-            // שמירה גם בלוקל סטורג' ליתר ביטחון
-            localStorage.setItem("expo_push_token", "${expoPushToken}");
           } catch(e) { console.error(e); }
         })();
         true;
       `;
 
       webViewRef.current.injectJavaScript(jsCode);
-      // שיטת גיבוי
-      webViewRef.current.postMessage(message);
     }
   };
 
-  // נסה לשלוח כשהטוקן מוכן או כשהאתר נטען
+  // שליחה כשהטוקן מוכן או כשהאתר נטען מחדש (חשוב במיוחד אחרי ניווט מהתראה)
   useEffect(() => {
     if (expoPushToken && isWebViewLoaded) {
       sendTokenToWeb();
-      // ניסיון חוזר כל 5 שניות למקרה שהאתר עשה רענון או ניווט
+      // טיימר גיבוי
       const interval = setInterval(sendTokenToWeb, 5000);
       return () => clearInterval(interval);
     }
@@ -95,19 +129,19 @@ export default function App() {
       <SafeAreaView style={styles.container}>
         <WebView
           ref={webViewRef}
-          source={{ uri: WEBSITE_URL }}
+          source={{ uri: currentUrl }} // שימוש ב-state המשתנה
           onNavigationStateChange={(navState) =>
             setCanGoBack(navState.canGoBack)
           }
           onLoadEnd={() => {
             setIsWebViewLoaded(true);
-            setTimeout(sendTokenToWeb, 1500); // המתנה קצרה שהריאקט יטען
+            // שליחת טוקן גם אחרי ניווט מהתראה
+            setTimeout(sendTokenToWeb, 1500);
           }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
           allowsBackForwardNavigationGestures={true}
           style={styles.webview}
-          // אפשר להוסיף UserAgent כדי שהאתר ידע שהוא באפליקציה
           userAgent="SmartDoulaApp/1.0.0"
         />
       </SafeAreaView>
@@ -115,7 +149,7 @@ export default function App() {
   );
 }
 
-// ... פונקציית registerForPushNotificationsAsync (העתק אותה כמו שהיא מ-CityPulse)
+// ... פונקציית registerForPushNotificationsAsync (ללא שינוי)
 async function registerForPushNotificationsAsync() {
   let token;
 
@@ -144,7 +178,6 @@ async function registerForPushNotificationsAsync() {
     }
 
     try {
-      // כאן חשוב לשים את ה-ID החדש
       const tokenData = await Notifications.getExpoPushTokenAsync({
         projectId: EXPO_PROJECT_ID,
       });
@@ -152,8 +185,6 @@ async function registerForPushNotificationsAsync() {
     } catch (e) {
       console.log("Error fetching token:", e);
     }
-  } else {
-    // alert('Must use physical device for Push Notifications');
   }
 
   return token;
@@ -162,7 +193,7 @@ async function registerForPushNotificationsAsync() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff", // התאם לצבעי Smart Doula (למשל #fff1f2 לפי ה-theme)
+    backgroundColor: "#fff",
   },
   webview: {
     flex: 1,

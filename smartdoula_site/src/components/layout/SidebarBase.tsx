@@ -47,28 +47,32 @@ export function SidebarBase({
     try {
       setIsLoggingOut(true);
 
-      // 1. קבלת המשתמש הנוכחי לפני הניתוק
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      // בדיקה האם אנחנו רצים בתוך האפליקציה (לפי ה-UserAgent שהגדרנו ב-Expo)
+      const isApp = window.navigator.userAgent.includes("SmartDoulaApp");
 
-      if (user) {
-        // 2. מחיקת הטוקן ממסד הנתונים כדי למנוע שליחת התראות למכשיר זה עבור המשתמש הזה
-        await supabase
-          .from("profiles")
-          .update({ expo_push_token: null })
-          .eq("id", user.id);
+      if (isApp) {
+        console.log("📱 App logout detected - clearing push token...");
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-        console.log("Push token removed from DB");
+        if (user) {
+          // מחיקת הטוקן רק אם ההתנתקות בוצעה מהאפליקציה
+          await supabase
+            .from("profiles")
+            .update({ expo_push_token: null })
+            .eq("id", user.id);
+        }
+
+        // ניקוי באפר מקומי
+        window.localStorage.removeItem("expo_push_token_buffer");
+      } else {
+        console.log("💻 Web logout detected - keeping push token active.");
       }
-
-      // 3. ניקוי הטוקן מהזיכרון המקומי של הדפדפן
-      // זה חשוב כדי שה-Hook לא ינסה לסנכרן אותו מחדש בטעות
-      window.localStorage.removeItem("expo_push_token_buffer");
     } catch (error) {
       console.error("Error during logout cleanup:", error);
     } finally {
-      // 4. ביצוע הניתוק בפועל (גם אם הניקוי נכשל)
+      // ביצוע הניתוק בכל מקרה (גם בוובי וגם באפליקציה)
       await supabase.auth.signOut();
       navigate("/auth");
       toast.info("התנתקת מהמערכת");
