@@ -15,9 +15,9 @@ export function PersonalTab({ formData, setFormData, isEditing }: any) {
             <FormField label="שם מלא" value={formData.full_name} onChange={v => update('full_name', v)} isEditing={isEditing} />
             <FormField label="תחום עיסוק" value={formData.occupation} onChange={v => update('occupation', v)} isEditing={isEditing} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-             <FormField label="טלפון ראשי" value={formData.phone} onChange={v => update('phone', v)} isEditing={isEditing} dir="ltr" />
-             <FormField label="טלפון נוסף" value={formData.phone_secondary} onChange={v => update('phone_secondary', v)} isEditing={isEditing} dir="ltr" />
+          <div className="grid grid-cols-2 gap-4" >
+             <FormField label="טלפון ראשי" value={formData.phone} onChange={v => update('phone', v)} isEditing={isEditing} dir="rtl" />
+             <FormField label="טלפון נוסף" value={formData.phone_secondary} onChange={v => update('phone_secondary', v)} isEditing={isEditing} dir="rtl" />
           </div>
           <FormField label="אימייל" value={formData.email} onChange={v => update('email', v)} isEditing={isEditing && false} />
           <FormField label="כתובת מגורים" value={formData.address} onChange={v => update('address', v)} isEditing={isEditing} />
@@ -33,7 +33,7 @@ export function PersonalTab({ formData, setFormData, isEditing }: any) {
              <h4 className="text-sm font-semibold text-muted-foreground border-b pb-1">בן/בת הזוג</h4>
              <div className="grid grid-cols-2 gap-4">
                 <FormField label="שם מלא" value={formData.partner_name} onChange={v => update('partner_name', v)} isEditing={isEditing} />
-                <FormField label="טלפון" value={formData.partner_phone} onChange={v => update('partner_phone', v)} isEditing={isEditing} dir="ltr"/>
+                <FormField label="טלפון" value={formData.partner_phone} onChange={v => update('partner_phone', v)} isEditing={isEditing} dir="rtl"/>
              </div>
              <FormField label="עיסוק" value={formData.partner_occupation} onChange={v => update('partner_occupation', v)} isEditing={isEditing} />
            </div>
@@ -44,7 +44,7 @@ export function PersonalTab({ formData, setFormData, isEditing }: any) {
              <div className="grid grid-cols-3 gap-2">
                 <FormField label="שם" value={formData.companion_name} onChange={v => update('companion_name', v)} isEditing={isEditing} />
                 <FormField label="קירבה" value={formData.companion_relation} onChange={v => update('companion_relation', v)} isEditing={isEditing} placeholder="אמא/אחות" />
-                <FormField label="טלפון" value={formData.companion_phone} onChange={v => update('companion_phone', v)} isEditing={isEditing} dir="ltr"/>
+                <FormField label="טלפון" value={formData.companion_phone} onChange={v => update('companion_phone', v)} isEditing={isEditing} dir="rtl"/>
              </div>
            </div>
         </CardContent>
