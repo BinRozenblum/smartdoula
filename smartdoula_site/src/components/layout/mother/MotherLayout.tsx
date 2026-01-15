@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { MotherSidebar } from "./MotherSidebar";
 import { Loader2, Menu, X, Baby } from "lucide-react";
@@ -10,52 +10,54 @@ export default function MotherLayout() {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    async function checkAuth() {
+    async function initAuth() {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
         navigate("/auth");
         return;
       }
 
-      const { data } = await supabase
+      // אם הגענו לכאן ויש סשן, אנחנו כבר יכולים להציג את ה-Layout
+      // נשתמש בנתונים מהסשן כברירת מחדל ראשונית
+      setProfile({
+        id: session.user.id,
+        full_name: session.user.user_metadata?.full_name || "mother",
+        role: "mother",
+      });
+
+      // משחררים את הטעינה מיד כדי שהמסך הלבן ייעלם!
+      setLoading(false);
+
+      // עכשיו ננסה להביא את הפרופיל המלא מה-DB (תמונה, טלפון וכו') בשקט ברקע
+      const { data: dbProfile } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
-        .single();
+        .eq("id", session.user.id)
+        .maybeSingle();
 
-      if (!data) {
-        console.error("No profile found for user");
-        navigate("/auth");
-        return;
+      if (dbProfile) {
+        setProfile(dbProfile);
       }
-
-      // בדיקת אבטחה: אם המשתמש הוא דולה - תעביר אותו לאזור הדולה
-      if (data.role === "doula") {
-        navigate("/doula");
-        return;
-      }
-
-      setProfile(data);
-      setLoading(false);
     }
-    checkAuth();
+
+    initAuth();
   }, [navigate]);
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin" />
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="animate-spin w-10 h-10 text-primary" />
       </div>
     );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col lg:flex-row">
-      {/* Mobile Header - זהה לקודם */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-white/80 backdrop-blur-md border-b sticky top-0 z-40">
         <div className="flex items-center gap-2 font-bold">
           <Baby className="w-5 h-5" />

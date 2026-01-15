@@ -8,32 +8,41 @@ export default function RootRedirect() {
 
   useEffect(() => {
     async function redirect() {
+      // 1. קבלת הסשן מהזיכרון המקומי
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
         navigate("/auth");
         return;
       }
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
+      // 2. קריאת התפקיד מה-Metadata (נמצא בתוך האובייקט של היוזר, לא דורש קריאת DB)
+      const role = session.user.user_metadata?.role;
 
-      if (data?.role === "doula") {
+      if (role === "doula") {
         navigate("/doula");
-      } else {
+      } else if (role === "mother") {
         navigate("/mother");
+      } else {
+        // אם משום מה אין רול ב-metadata, ננסה בכל זאת קריאת DB מהירה כגיבוי
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (profile?.role === "doula") navigate("/doula");
+        else navigate("/mother");
       }
     }
     redirect();
   }, [navigate]);
 
   return (
-    <div className="h-screen flex items-center justify-center">
-      <Loader2 className="animate-spin" />
+    <div className="h-screen flex items-center justify-center bg-background">
+      <Loader2 className="animate-spin w-10 h-10 text-primary" />
     </div>
   );
 }

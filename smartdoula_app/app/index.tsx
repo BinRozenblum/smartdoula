@@ -9,7 +9,7 @@ import { WebView } from "react-native-webview";
 const EXPO_PROJECT_ID = "1afdcd01-0d15-4a0a-b17b-40334536974e";
 
 // כתובת הבסיס של האתר (ללא סלאש בסוף עדיף, כדי למנוע כפילויות)
-const WEBSITE_BASE_URL = "https://smart-doula.netlify.app/auth/";
+const WEBSITE_BASE_URL = "https://smart-doula.netlify.app";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
