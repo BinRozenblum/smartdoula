@@ -124,6 +124,7 @@ export default function ClientDetail() {
           last_period_date: formData.last_period_date || null,
           estimated_due_date: formData.estimated_due_date,
           number_of_fetuses: formData.number_of_fetuses,
+          number_of_previous_births: formData.number_of_previous_births,
           g_p_summary: formData.g_p_summary,
           birth_plan_notes: formData.birth_plan_notes,
           backup_doula_name: formData.backup_doula_name,
@@ -304,8 +305,8 @@ export default function ClientDetail() {
             </CardContent>
           </Card>
 
-          {/* עמודה צידית - קוביה 2 */}
-          <div className="p-6 space-y-6 bg-white/40">
+          {/* עמודה 2: קוביה 2 (ציר זמן) */}
+          <div className="lg:col-span-5 xl:col-span-4 min-w-0">
             <TimelineWidget
               pregnancyId={id}
               events={events}
@@ -351,10 +352,10 @@ export default function ClientDetail() {
           <Tabs defaultValue="personal" className="w-full" dir="rtl">
             <TabsList className="w-full h-auto p-1 bg-muted/50 rounded-xl mb-4 flex-wrap">
               <TabsTrigger value="personal" className="flex-1 py-2 text-xs">
-                פרטים מורחבים
+                פרטים אישיים
               </TabsTrigger>
               <TabsTrigger value="medical" className="flex-1 py-2 text-xs">
-                רפואי
+                מיילדותי
               </TabsTrigger>
               <TabsTrigger value="admin" className="flex-1 py-2 text-xs">
                 מנהלה

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, Plus, MessageSquare, Send, Loader2 } from "lucide-react";
+import { Clock, Plus, MessageSquare, Send, Loader2, X } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { toast } from "sonner";
@@ -25,7 +25,7 @@ export function TimelineWidget({ pregnancyId, events, onEventAdded }: any) {
       } = await supabase.auth.getUser();
       const { error } = await supabase.from("pregnancy_events").insert({
         pregnancy_id: pregnancyId,
-        title: title || "עדכון כללי",
+        title: title || "עדכון",
         content,
         event_type: "note",
         event_date: new Date().toISOString(),
@@ -38,7 +38,7 @@ export function TimelineWidget({ pregnancyId, events, onEventAdded }: any) {
       setContent("");
       setTitle("");
       setIsAdding(false);
-      onEventAdded(); // רענון הרשימה
+      onEventAdded();
     } catch (e) {
       toast.error("שגיאה בהוספת דיווח");
     } finally {
@@ -47,8 +47,9 @@ export function TimelineWidget({ pregnancyId, events, onEventAdded }: any) {
   };
 
   return (
-    <Card className="flex flex-col shadow-sm border-sage/20">
-      <CardHeader className="border-b bg-sage/5 py-4">
+    /* גובה קבוע לכל הקוביה - h-[600px] או לפי העדפתך */
+    <Card className="flex flex-col shadow-sm border-sage/20 h-[400px] overflow-hidden bg-white">
+      <CardHeader className="border-b bg-sage/5 py-4 flex-shrink-0">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-sage" /> ליווי היולדת
@@ -57,10 +58,10 @@ export function TimelineWidget({ pregnancyId, events, onEventAdded }: any) {
             size="sm"
             variant="ghost"
             onClick={() => setIsAdding(!isAdding)}
-            className="text-sage font-bold"
+            className="text-sage font-bold hover:bg-sage/10"
           >
             {isAdding ? (
-              "ביטול"
+              <X className="w-4 h-4" />
             ) : (
               <>
                 <Plus className="w-4 h-4 ml-1" /> הוספת דיווח
@@ -70,65 +71,77 @@ export function TimelineWidget({ pregnancyId, events, onEventAdded }: any) {
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+      <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+        {/* אזור הוספת דיווח - נפתח מעל הרשימה */}
         {isAdding && (
-          <div className="p-4 border-b bg-muted/30 space-y-3 animate-in slide-in-from-top duration-300">
+          <div className="p-4 border-b bg-muted/30 space-y-3 animate-in slide-in-from-top duration-300 flex-shrink-0">
             <Input
-              placeholder="כותרת (לדוגמה: שיחת טלפון)"
+              placeholder="נושא (למשל: פגישת הכנה)"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-white"
+              className="bg-white h-9 text-sm"
             />
             <Textarea
-              placeholder="מה קרה עכשיו? (תיעוד הפגישה, הרגשה, בדיקה...)"
+              placeholder="תעדי כאן את ההתרחשות..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="bg-white min-h-[100px]"
+              className="bg-white min-h-[80px] text-sm"
             />
             <Button
               onClick={handleSubmit}
-              disabled={loading}
-              className="w-full gradient-sage text-white"
+              disabled={loading || !content.trim()}
+              className="w-full gradient-sage text-white h-9 shadow-sm"
             >
               {loading ? (
                 <Loader2 className="animate-spin" />
               ) : (
-                <>
-                  <Send className="w-4 h-4 ml-2" /> שמירה לרצף
-                </>
+                "שמירה לציר הזמן"
               )}
             </Button>
           </div>
         )}
 
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-6 relative mr-4 border-r-2 border-muted pr-6">
-            {events.length === 0 && (
-              <p className="text-center text-muted-foreground py-10 italic">
-                טרם הוזן תיעוד לליווי זה
-              </p>
-            )}
-            {events.map((event: any) => (
-              <div key={event.id} className="relative" dir="rtl">
-                <div className="absolute -right-[33px] top-1 w-4 h-4 rounded-full bg-white border-2 border-sage z-10" />
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-bold text-sm text-foreground">
-                      {event.title}
-                    </h4>
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {format(new Date(event.event_date), "dd/MM/yy HH:mm", {
-                        locale: he,
-                      })}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                    {event.content}
-                  </p>
+        {/* אזור הרשימה הנגלל - מקבל את כל הגובה שנותר */}
+        <ScrollArea className="flex-1">
+          <div className="p-6 relative">
+            {/* הקו האנכי של ה-Timeline */}
+            <div className="absolute right-[31px] top-6 bottom-6 w-0.5 bg-muted" />
+
+            <div className="space-y-8">
+              {events.length === 0 ? (
+                <div className="text-center py-20 text-muted-foreground italic text-sm">
+                  טרם הוזן תיעוד לליווי זה
                 </div>
-              </div>
-            ))}
+              ) : (
+                events.map((event: any) => (
+                  <div key={event.id} className="relative pr-8" dir="rtl">
+                    {/* נקודה על הציר */}
+                    <div className="absolute -right-[5px] top-1.5 w-3 h-3 rounded-full bg-white border-2 border-sage z-10 shadow-sm" />
+
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-start gap-4">
+                        <h4 className="font-bold text-sm text-foreground leading-tight">
+                          {event.title}
+                        </h4>
+                        <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                          <Clock className="w-2.5 h-2.5" />
+                          {format(
+                            new Date(event.event_date),
+                            "dd/MM/yy HH:mm",
+                            { locale: he }
+                          )}
+                        </span>
+                      </div>
+                      <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
+                        <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                          {event.content}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </ScrollArea>
       </CardContent>

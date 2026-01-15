@@ -52,6 +52,7 @@ export default function Settings() {
     background_diseases: "",
     hospital_primary: "",
     number_of_fetuses: "1",
+    number_of_previous_births: "0",
     g_p_summary: "",
   });
 
@@ -94,6 +95,8 @@ export default function Settings() {
             background_diseases: preg.background_diseases || "",
             hospital_primary: preg.hospital_primary || "",
             number_of_fetuses: preg.number_of_fetuses?.toString() || "1",
+            number_of_previous_births:
+              preg.number_of_previous_births?.toString() || "0",
             g_p_summary: preg.g_p_summary || "",
           };
         }
@@ -149,6 +152,8 @@ export default function Settings() {
             background_diseases: formData.background_diseases,
             hospital_primary: formData.hospital_primary,
             number_of_fetuses: parseInt(formData.number_of_fetuses) || 1,
+            number_of_previous_births:
+              parseInt(formData.number_of_previous_births) || 0,
             g_p_summary: formData.g_p_summary,
           })
           .eq("id", formData.pregnancy_id);
@@ -292,6 +297,18 @@ export default function Settings() {
                   }
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label>מספר לידות קודמות</Label>
+                <Input
+                  type="number"
+                  value={formData.number_of_previous_births}
+                  onChange={(e) =>
+                    handleChange("number_of_previous_births", e.target.value)
+                  }
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label>מספר עוברים</Label>
                 <Select
