@@ -27,6 +27,7 @@ import { WeeklyProgress } from "@/components/dashboard/WeeklyProgress";
 import { BirthPlanViewer } from "@/components/clients/tabs/BirthPlanViewer";
 import { DocumentsManager } from "@/components/clients/tabs/DocumentsManager";
 import { TimelineWidget } from "@/components/clients/TimelineWidget";
+import { BirthSummaryTab } from "@/components/clients/tabs/BirthSummaryTab";
 
 import { PersonalTab } from "@/components/clients/tabs/PersonalTab";
 import { MedicalTab } from "@/components/clients/tabs/MedicalTab";
@@ -150,7 +151,7 @@ export default function ClientDetail() {
     if (!formData.estimated_due_date) return 0;
     const due = new Date(formData.estimated_due_date).getTime();
     const diffWeeks = Math.floor(
-      (due - new Date().getTime()) / (1000 * 60 * 60 * 24 * 7)
+      (due - new Date().getTime()) / (1000 * 60 * 60 * 24 * 7),
     );
     return Math.max(0, 40 - diffWeeks);
   };
@@ -253,7 +254,7 @@ export default function ClientDetail() {
                       {formData.estimated_due_date
                         ? format(
                             new Date(formData.estimated_due_date),
-                            "dd/MM/yy"
+                            "dd/MM/yy",
                           )
                         : "-"}
                     </p>
@@ -363,9 +364,8 @@ export default function ClientDetail() {
               <TabsTrigger value="docs" className="flex-1 py-2 text-xs">
                 מסמכים
               </TabsTrigger>
-              <TabsTrigger value="plan" className="flex-1 py-2 text-xs">
-                תוכנית לידה
-              </TabsTrigger>
+              <TabsTrigger value="summary">סיכום לידה</TabsTrigger>
+              <TabsTrigger value="payments">תשלומים</TabsTrigger>
             </TabsList>
             <TabsContent value="personal">
               <PersonalTab
@@ -391,14 +391,18 @@ export default function ClientDetail() {
             <TabsContent value="docs">
               <DocumentsManager motherId={data.profiles.id} />
             </TabsContent>
-            <TabsContent value="plan">
-              <BirthPlanViewer
-                plan={formData.birth_plan_notes}
-                onChange={(newPlan: any) =>
-                  setFormData({ ...formData, birth_plan_notes: newPlan })
-                }
-                isEditable={isEditing}
+            <TabsContent value="summary">
+              <BirthSummaryTab
+                pregnancyId={id}
+                initialData={data.birth_summary_data}
+                onSave={fetchClientData}
               />
+            </TabsContent>
+
+            {/* חיבור גם את רכיב התשלומים שבנינו קודם - בסינון לפי ID */}
+            <TabsContent value="payments">
+              <PaymentsPage embeddedClientId={id} />
+              {/* נצטרך לעדכן מעט את PaymentsPage שיקבל prop אופציונלי לסינון אוטומטי */}
             </TabsContent>
           </Tabs>
         </div>

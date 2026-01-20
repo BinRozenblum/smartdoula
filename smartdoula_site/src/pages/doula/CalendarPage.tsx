@@ -1,14 +1,23 @@
 import { useState, useEffect } from "react";
-import { Calendar, dateFnsLocalizer, Event } from "react-big-calendar";
-import format from "date-fns/format";
-import parse from "date-fns/parse";
-import startOfWeek from "date-fns/startOfWeek";
-import getDay from "date-fns/getDay";
+import {
+  Calendar as BigCalendar,
+  dateFnsLocalizer,
+  Event,
+} from "react-big-calendar";
+import { format, parse, startOfWeek, getDay, isSameDay } from "date-fns";
 import he from "date-fns/locale/he";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Loader2, Plus, Trash2, Save, X, User } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  Save,
+  Clock,
+  MapPin,
+  ChevronLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,12 +37,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
-// לוקליזציה לעברית
-const locales = {
-  he: he,
-};
-
+const locales = { he: he };
 const localizer = dateFnsLocalizer({
   format,
   parse,
@@ -42,28 +49,28 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-// הגדרת סוג האירוע ביומן
 interface MyEvent extends Event {
   id?: string;
   type: "meeting" | "birth_date" | "other";
   pregnancy_id?: string;
-  content?: string; // תיאור
+  content?: string;
 }
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<MyEvent[]>([]);
-  const [clients, setClients] = useState<any[]>([]); // רשימת יולדות לבחירה
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    new Date(),
+  );
 
-  // ניהול הדיאלוג (מודאל)
+  // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-
-  // טופס
   const [formData, setFormData] = useState({
     title: "",
-    start: "", // YYYY-MM-DDTHH:mm format for input
+    start: "",
     end: "",
     pregnancy_id: "",
     content: "",
@@ -80,7 +87,6 @@ export default function CalendarPage() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. שליפת יולדות (עבור ה-Select בטופס ועבור תל"מ)
       const { data: pregnancies } = await supabase
         .from("pregnancies")
         .select("id, estimated_due_date, profiles:mother_id(full_name)")
@@ -89,7 +95,6 @@ export default function CalendarPage() {
 
       setClients(pregnancies || []);
 
-      // 2. שליפת אירועים (פגישות)
       const { data: pregEvents } = await supabase
         .from("pregnancy_events")
         .select("*")
@@ -97,7 +102,6 @@ export default function CalendarPage() {
 
       const calendarEvents: MyEvent[] = [];
 
-      // הוספת תאריכי לידה משוערים (לא ניתנים לעריכה דרך היומן כרגע)
       pregnancies?.forEach((p: any) => {
         if (p.estimated_due_date) {
           calendarEvents.push({
@@ -112,13 +116,12 @@ export default function CalendarPage() {
         }
       });
 
-      // הוספת פגישות/אירועים
       pregEvents?.forEach((e: any) => {
         calendarEvents.push({
           id: e.id,
           title: e.title,
           start: new Date(e.event_date),
-          end: new Date(new Date(e.event_date).getTime() + 60 * 60 * 1000), // ברירת מחדל שעה
+          end: new Date(new Date(e.event_date).getTime() + 60 * 60 * 1000),
           type: "meeting",
           pregnancy_id: e.pregnancy_id,
           content: e.content,
@@ -134,15 +137,15 @@ export default function CalendarPage() {
     }
   };
 
-  // --- לחיצה על מקום ריק ביומן (הוספה) ---
-  const handleSelectSlot = ({ start }: { start: Date }) => {
+  // --- Helpers ---
+  const openAddModal = (dateToUse?: Date) => {
     setIsEditing(false);
     setSelectedEventId(null);
-
-    // הגדרת תאריך ושעה התחלתית (פורמט לאינפוט)
-    const startDateStr = format(start, "yyyy-MM-dd'T'HH:mm");
+    const baseDate = dateToUse || new Date();
+    baseDate.setMinutes(0);
+    const startDateStr = format(baseDate, "yyyy-MM-dd'T'HH:mm");
     const endDateStr = format(
-      new Date(start.getTime() + 60 * 60 * 1000),
+      new Date(baseDate.getTime() + 60 * 60 * 1000),
       "yyyy-MM-dd'T'HH:mm",
     );
 
@@ -156,14 +159,11 @@ export default function CalendarPage() {
     setIsDialogOpen(true);
   };
 
-  // --- לחיצה על אירוע קיים (עריכה) ---
-  const handleSelectEvent = (event: MyEvent) => {
-    // לא מאפשרים עריכת תל"מ דרך היומן (זה מגיע מפרופיל היולדת)
+  const openEditModal = (event: MyEvent) => {
     if (event.type === "birth_date") {
-      toast.info("זהו תאריך לידה משוער. ניתן לשנות אותו דרך כרטיס היולדת.");
+      toast.info('תל"מ מנוהל דרך תיק היולדת');
       return;
     }
-
     setIsEditing(true);
     setSelectedEventId(event.id as string);
     setFormData({
@@ -176,92 +176,62 @@ export default function CalendarPage() {
     setIsDialogOpen(true);
   };
 
-  // --- שמירה (יצירה או עדכון) ---
   const handleSave = async () => {
     if (!formData.title || !formData.pregnancy_id || !formData.start) {
-      toast.error("נא למלא את כל השדות החובה");
+      toast.error("יש למלא שדות חובה");
       return;
     }
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
     const eventPayload = {
       pregnancy_id: formData.pregnancy_id,
       title: formData.title,
       content: formData.content,
       event_date: new Date(formData.start).toISOString(),
-      event_type: "meeting", // כרגע הכל מוגדר כפגישה/הערה
+      event_type: "meeting",
       created_by: user?.id,
     };
-
     try {
       if (isEditing && selectedEventId) {
-        // עדכון
-        const { error } = await supabase
+        await supabase
           .from("pregnancy_events")
           .update(eventPayload)
           .eq("id", selectedEventId);
-
-        if (error) throw error;
-        toast.success("האירוע עודכן בהצלחה");
+        toast.success("עודכן בהצלחה");
       } else {
-        // יצירה חדשה
-        const { error } = await supabase
-          .from("pregnancy_events")
-          .insert(eventPayload);
-
-        if (error) throw error;
-        toast.success("האירוע נוצר בהצלחה");
+        await supabase.from("pregnancy_events").insert(eventPayload);
+        toast.success("נוצר בהצלחה");
       }
-
       setIsDialogOpen(false);
-      fetchData(); // רענון הלוח
-    } catch (error) {
-      console.error(error);
-      toast.error("שגיאה בשמירת האירוע");
+      fetchData();
+    } catch {
+      toast.error("שגיאה בשמירה");
     }
   };
 
-  // --- מחיקה ---
   const handleDelete = async () => {
-    if (!selectedEventId) return;
-    if (!confirm("האם למחוק את האירוע הזה?")) return;
-
+    if (!selectedEventId || !confirm("למחוק את האירוע?")) return;
     try {
-      const { error } = await supabase
+      await supabase
         .from("pregnancy_events")
         .delete()
         .eq("id", selectedEventId);
-
-      if (error) throw error;
-
-      toast.success("האירוע נמחק");
+      toast.success("נמחק בהצלחה");
       setIsDialogOpen(false);
       fetchData();
-    } catch (error) {
+    } catch {
       toast.error("שגיאה במחיקה");
     }
   };
 
-  // עיצוב האירועים בלוח
-  const eventStyleGetter = (event: MyEvent) => {
-    let backgroundColor = "#10b981"; // ירוק (פגישה)
-    if (event.type === "birth_date") backgroundColor = "#e11d48"; // אדום (תל"מ)
+  // --- Logic for Mobile View Indicators ---
+  // מחלץ מערך של תאריכים שיש בהם אירועים
+  const daysWithEvents = events.map((e) => e.start as Date);
 
-    return {
-      style: {
-        backgroundColor,
-        borderRadius: "6px",
-        opacity: 0.9,
-        color: "white",
-        border: "none",
-        display: "block",
-        fontSize: "0.85rem",
-      },
-    };
-  };
+  const selectedDayEvents = events
+    .filter((e) => isSameDay(e.start as Date, selectedDate || new Date()))
+    .sort((a, b) => (a.start as Date).getTime() - (b.start as Date).getTime());
 
   if (loading)
     return (
@@ -272,21 +242,24 @@ export default function CalendarPage() {
 
   return (
     <div
-      className="p-4 md:p-6 h-[calc(100vh-2rem)] flex flex-col gap-4 animate-fade-in"
+      className="p-4 h-[calc(100vh-4rem)] flex flex-col gap-4 animate-fade-in"
       dir="rtl"
     >
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-2">
         <h1 className="text-2xl font-bold">יומן פגישות</h1>
         <Button
-          onClick={() => handleSelectSlot({ start: new Date() })}
-          className="gradient-warm gap-2"
+          onClick={() => openAddModal(selectedDate)}
+          className="gradient-warm gap-2 shadow-sm"
         >
-          <Plus className="w-4 h-4" /> אירוע חדש
+          <Plus className="w-4 h-4" />{" "}
+          <span className="hidden md:inline">אירוע חדש</span>
         </Button>
       </div>
 
-      <Card className="flex-1 p-4 shadow-card border-none bg-white/50 backdrop-blur-sm">
-        <Calendar
+      {/* --- Desktop View --- */}
+      <Card className="hidden md:block flex-1 p-4 shadow-card border-none bg-white/50">
+        <BigCalendar
           localizer={localizer}
           events={events}
           startAccessor="start"
@@ -294,8 +267,8 @@ export default function CalendarPage() {
           style={{ height: "100%" }}
           culture="he"
           selectable
-          onSelectSlot={handleSelectSlot}
-          onSelectEvent={handleSelectEvent}
+          onSelectSlot={(slot) => openAddModal(slot.start)}
+          onSelectEvent={openEditModal}
           messages={{
             next: "הבא",
             previous: "הקודם",
@@ -304,29 +277,91 @@ export default function CalendarPage() {
             week: "שבוע",
             day: "יום",
             agenda: "סדר יום",
-            date: "תאריך",
-            time: "זמן",
-            event: "אירוע",
-            noEventsInRange: "אין אירועים בטווח זה",
           }}
-          eventPropGetter={eventStyleGetter}
+          eventPropGetter={(event) => ({
+            style: {
+              backgroundColor:
+                event.type === "birth_date" ? "#e11d48" : "#10b981",
+              borderRadius: "6px",
+              fontSize: "0.85rem",
+            },
+          })}
           rtl={true}
         />
       </Card>
 
-      {/* --- דיאלוג הוספה/עריכה --- */}
+      {/* --- Mobile View --- */}
+      <div className="md:hidden flex flex-col gap-4 h-full">
+        <Card className="border-none shadow-sm">
+          <CardContent className="p-0 flex justify-center">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              locale={he}
+              className="rounded-md border-none"
+              // --- כאן הקסם: סימון ימים עם אירועים ---
+              modifiers={{ hasEvent: daysWithEvents }}
+              modifiersClassNames={{
+                hasEvent:
+                  "relative after:content-[''] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-primary after:rounded-full font-bold text-primary",
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        <div className="flex-1 overflow-y-auto space-y-3 pb-20">
+          <h3 className="font-bold text-muted-foreground text-sm px-2">
+            אירועים ל-{selectedDate ? format(selectedDate, "dd/MM/yyyy") : ""}
+          </h3>
+
+          {selectedDayEvents.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground bg-muted/20 rounded-xl mx-2">
+              אין אירועים ביום זה
+            </div>
+          ) : (
+            selectedDayEvents.map((event) => (
+              <div
+                key={event.id}
+                onClick={() => openEditModal(event)}
+                className={cn(
+                  "bg-white p-4 rounded-xl shadow-sm border-r-4 flex items-center justify-between mx-2 active:scale-95 transition-transform",
+                  event.type === "birth_date"
+                    ? "border-r-red-500"
+                    : "border-r-green-500",
+                )}
+              >
+                <div>
+                  <h4 className="font-bold text-foreground">{event.title}</h4>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {format(event.start as Date, "HH:mm")} -{" "}
+                      {format(event.end as Date, "HH:mm")}
+                    </span>
+                  </div>
+                </div>
+                <ChevronLeft className="w-4 h-4 text-muted-foreground/50" />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* --- Dialog (אותו דיאלוג לכולם) --- */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent dir="rtl" className="sm:max-w-[425px]">
+        <DialogContent
+          dir="rtl"
+          className="max-w-[90%] md:max-w-[425px] rounded-2xl"
+        >
           <DialogHeader>
             <DialogTitle>
               {isEditing ? "עריכת אירוע" : "הוספת אירוע חדש"}
             </DialogTitle>
           </DialogHeader>
-
           <div className="grid gap-4 py-4">
-            {/* בחירת יולדת */}
             <div className="space-y-2">
-              <Label>יולדת מקושרת</Label>
+              <Label>יולדת</Label>
               <Select
                 value={formData.pregnancy_id}
                 onValueChange={(val) =>
@@ -334,32 +369,27 @@ export default function CalendarPage() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="בחר יולדת מהרשימה" />
+                  <SelectValue placeholder="בחר יולדת" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.profiles.full_name}
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.profiles.full_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* כותרת */}
             <div className="space-y-2">
-              <Label>נושא הפגישה</Label>
+              <Label>כותרת</Label>
               <Input
                 value={formData.title}
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
                 }
-                placeholder="למשל: הכנה ללידה מפגש 1"
               />
             </div>
-
-            {/* זמנים */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label>התחלה</Label>
                 <Input
@@ -368,41 +398,34 @@ export default function CalendarPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, start: e.target.value })
                   }
+                  className="text-xs"
                 />
               </div>
               <div className="space-y-2">
-                <Label>סיום (משוער)</Label>
+                <Label>סיום</Label>
                 <Input
                   type="datetime-local"
                   value={formData.end}
                   onChange={(e) =>
                     setFormData({ ...formData, end: e.target.value })
                   }
+                  className="text-xs"
                 />
               </div>
             </div>
-
-            {/* תיאור */}
             <div className="space-y-2">
-              <Label>הערות / מיקום</Label>
+              <Label>הערות</Label>
               <Textarea
                 value={formData.content}
                 onChange={(e) =>
                   setFormData({ ...formData, content: e.target.value })
                 }
-                className="min-h-[80px]"
               />
             </div>
           </div>
-
-          <DialogFooter className="flex justify-between sm:justify-between gap-2">
+          <DialogFooter className="flex-row justify-between gap-2">
             {isEditing && (
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={handleDelete}
-                title="מחיקה"
-              >
+              <Button variant="destructive" size="icon" onClick={handleDelete}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             )}

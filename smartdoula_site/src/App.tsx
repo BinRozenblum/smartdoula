@@ -25,6 +25,7 @@ import CalendarPage from "./pages/doula/CalendarPage";
 import { MotherDashboard } from "./pages/mother/MotherDashboard";
 import MotherSettings from "./pages/mother/Settings";
 import ContractionTimerPage from "./pages/mother/ContractionTimerPage";
+import PaymentsPage from "./pages/doula/PaymentsPage";
 
 import { useMobilePushToken } from "@/hooks/useMobilePushToken"; // <--- הוסף את זה
 
@@ -55,7 +56,7 @@ const App = () => {
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="live-monitor/:clientId" element={<LiveMonitor />} />
             <Route path="calendar" element={<CalendarPage />} />{" "}
-            {/* הוסף שורה זו */}
+            <Route path="payments" element={<PaymentsPage />} />{" "}
           </Route>
 
           {/* 4. אזור האמא - הכל תחת /mother */}

@@ -1,4 +1,11 @@
-import { Home, Users, Bell, Settings, Calendar } from "lucide-react";
+import {
+  Home,
+  Users,
+  Bell,
+  Settings,
+  Calendar,
+  CreditCard,
+} from "lucide-react";
 import { SidebarBase } from "../SidebarBase";
 
 export function DoulaSidebar({
@@ -12,10 +19,10 @@ export function DoulaSidebar({
     { icon: Home, label: "דאשבורד", href: "/doula" },
     { icon: Users, label: "היולדות שלי", href: "/doula/clients" },
     { icon: Calendar, label: "יומן פגישות", href: "/doula/calendar" },
+    { icon: CreditCard, label: "תשלומים", href: "/doula/payments" },
 
     { icon: Bell, label: "התראות", href: "/doula/notifications" },
-    { icon: Settings, label: "הגדרות פרופיל", href: "/doula/settings" },
-  ];
+   ];
 
   return (
     <SidebarBase
