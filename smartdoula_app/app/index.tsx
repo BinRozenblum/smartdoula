@@ -46,7 +46,7 @@ export default function App() {
       (response) => {
         const data = response.notification.request.content.data;
         handleNotificationNavigation(data);
-      }
+      },
     );
 
     // ב. טיפול בלחיצה כשהאפליקציה הייתה סגורה לגמרי (Cold Start)
@@ -84,7 +84,7 @@ export default function App() {
 
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
-      onBackPress
+      onBackPress,
     );
 
     return () => backHandler.remove();
@@ -142,7 +142,7 @@ export default function App() {
           domStorageEnabled={true}
           allowsBackForwardNavigationGestures={true}
           style={styles.webview}
-          userAgent="SmartDoulaApp/1.0.0"
+          userAgent="Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 SmartDoulaApp/1.0.0"
         />
       </SafeAreaView>
     </SafeAreaProvider>

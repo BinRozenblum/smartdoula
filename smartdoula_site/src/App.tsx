@@ -19,6 +19,7 @@ import ClientDetail from "./pages/doula/ClientDetail";
 import DoulaSettings from "./pages/doula/DoulaSettings";
 import NotificationsPage from "./pages/doula/NotificationsPage";
 import LiveMonitor from "./pages/doula/LiveMonitor";
+import CalendarPage from "./pages/doula/CalendarPage";
 
 // Mother Pages
 import { MotherDashboard } from "./pages/mother/MotherDashboard";
@@ -53,6 +54,8 @@ const App = () => {
             <Route path="settings" element={<DoulaSettings />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="live-monitor/:clientId" element={<LiveMonitor />} />
+            <Route path="calendar" element={<CalendarPage />} />{" "}
+            {/* הוסף שורה זו */}
           </Route>
 
           {/* 4. אזור האמא - הכל תחת /mother */}

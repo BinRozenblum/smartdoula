@@ -1,4 +1,4 @@
-import { Home, Users, Bell, Settings } from "lucide-react";
+import { Home, Users, Bell, Settings, Calendar } from "lucide-react";
 import { SidebarBase } from "../SidebarBase";
 
 export function DoulaSidebar({
@@ -11,6 +11,8 @@ export function DoulaSidebar({
   const navItems = [
     { icon: Home, label: "דאשבורד", href: "/doula" },
     { icon: Users, label: "היולדות שלי", href: "/doula/clients" },
+    { icon: Calendar, label: "יומן פגישות", href: "/doula/calendar" },
+
     { icon: Bell, label: "התראות", href: "/doula/notifications" },
     { icon: Settings, label: "הגדרות פרופיל", href: "/doula/settings" },
   ];
