@@ -27,6 +27,8 @@ import MotherSettings from "./pages/mother/Settings";
 import ContractionTimerPage from "./pages/mother/ContractionTimerPage";
 import PaymentsPage from "./pages/doula/PaymentsPage";
 
+import DoulaExplorerPage from "./pages/public/DoulaExplorerPage";
+
 import { useMobilePushToken } from "@/hooks/useMobilePushToken"; // <--- הוסף את זה
 
 const queryClient = new QueryClient();
@@ -43,9 +45,9 @@ const App = () => {
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/invite" element={<InviteRegister />} />
 
+          <Route path="/explore" element={<DoulaExplorerPage />} />
           {/* 2. ניתוב ראשי חכם */}
           <Route path="/" element={<RootRedirect />} />
-
           {/* 3. אזור הדולה - הכל תחת /doula */}
           <Route path="/doula" element={<DoulaLayout />}>
             <Route index element={<DoulaDashboard />} />{" "}
@@ -58,7 +60,6 @@ const App = () => {
             <Route path="calendar" element={<CalendarPage />} />{" "}
             <Route path="payments" element={<PaymentsPage />} />{" "}
           </Route>
-
           {/* 4. אזור האמא - הכל תחת /mother */}
           <Route path="/mother" element={<MotherLayout />}>
             <Route index element={<MotherDashboard />} />{" "}
@@ -67,7 +68,6 @@ const App = () => {
             <Route path="contractions" element={<ContractionTimerPage />} />
             {/* <Route path="birth-plan" element={<BirthPlan />} /> */}
           </Route>
-
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
