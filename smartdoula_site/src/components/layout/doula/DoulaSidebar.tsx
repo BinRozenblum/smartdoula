@@ -1,10 +1,9 @@
 import {
   Home,
   Users,
-  Bell,
-  Settings,
+  Activity, // אייקון למוניטור
   Calendar,
-  CreditCard,
+  CreditCard, // אייקון להנהלת חשבונות
 } from "lucide-react";
 import { SidebarBase } from "../SidebarBase";
 
@@ -15,14 +14,36 @@ export function DoulaSidebar({
   isOpen,
   onClose,
 }: any) {
+  // סידור הפריטים בדיוק לפי האפיון
   const navItems = [
-    { icon: Home, label: "דאשבורד", href: "/doula" },
-    { icon: Users, label: "היולדות שלי", href: "/doula/clients" },
-    { icon: Calendar, label: "יומן פגישות", href: "/doula/calendar" },
-    { icon: CreditCard, label: "תשלומים", href: "/doula/payments" },
-
-    { icon: Bell, label: "התראות", href: "/doula/notifications" },
-   ];
+    {
+      icon: Home,
+      label: "דף הבית",
+      href: "/doula",
+    },
+    {
+      icon: Users,
+      label: "הלקוחות שלי",
+      href: "/doula/clients",
+    },
+    {
+      icon: Activity,
+      label: "מוניטור חי",
+      // הערה: כרגע מפנה לדאשבורד כי המוניטור דורש ID,
+      // בעתיד נבנה דף מרכז לכל המוניטורים
+      href: "/doula/live-monitor/overview",
+    },
+    {
+      icon: Calendar,
+      label: "יומן",
+      href: "/doula/calendar",
+    },
+    {
+      icon: CreditCard,
+      label: "הנהלת חשבונות",
+      href: "/doula/payments",
+    },
+  ];
 
   return (
     <SidebarBase

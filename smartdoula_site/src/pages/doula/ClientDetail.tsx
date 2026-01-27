@@ -365,7 +365,6 @@ export default function ClientDetail() {
                 מסמכים
               </TabsTrigger>
               <TabsTrigger value="summary">סיכום לידה</TabsTrigger>
-              <TabsTrigger value="payments">תשלומים</TabsTrigger>
             </TabsList>
             <TabsContent value="personal">
               <PersonalTab
@@ -397,12 +396,6 @@ export default function ClientDetail() {
                 initialData={data.birth_summary_data}
                 onSave={fetchClientData}
               />
-            </TabsContent>
-
-            {/* חיבור גם את רכיב התשלומים שבנינו קודם - בסינון לפי ID */}
-            <TabsContent value="payments">
-              <PaymentsPage embeddedClientId={id} />
-              {/* נצטרך לעדכן מעט את PaymentsPage שיקבל prop אופציונלי לסינון אוטומטי */}
             </TabsContent>
           </Tabs>
         </div>
