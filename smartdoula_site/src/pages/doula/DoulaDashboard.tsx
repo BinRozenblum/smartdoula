@@ -148,15 +148,6 @@ export function DoulaDashboard() {
           </p>
         </div>
         <div className="flex gap-3">
-          {/* <Button size="sm" className="gradient-warm gap-2 shadow-soft">
-            <Plus className="w-4 h-4" />
-            צירוף יולדת חדשה
-          </Button> */}
-
-          <span className="text-lg font-mono font-black text-primary tracking-widest">
-            {profile?.doula_link_code || "---"}
-          </span>
-
           <Button
             onClick={handleCopyInvite}
             className={cn(
@@ -178,6 +169,9 @@ export function DoulaDashboard() {
               </>
             )}
           </Button>
+          <span className="text-lg font-mono font-black text-primary tracking-widest">
+            {profile?.doula_link_code || "---"}
+          </span>
         </div>
       </header>
 

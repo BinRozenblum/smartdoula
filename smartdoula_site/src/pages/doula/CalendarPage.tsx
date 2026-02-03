@@ -1,23 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Calendar as BigCalendar,
   dateFnsLocalizer,
   Event,
+  View,
 } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay, isSameDay } from "date-fns";
+import {
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  isSameDay,
+  startOfDay,
+} from "date-fns";
 import he from "date-fns/locale/he";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Loader2,
-  Plus,
-  Trash2,
-  Save,
-  Clock,
-  MapPin,
-  ChevronLeft,
-} from "lucide-react";
+import { Loader2, Plus, Trash2, Save, Clock, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,9 +61,10 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<MyEvent[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    new Date(),
-  );
+
+  // State ניהול תאריך ותצוגה
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [view, setView] = useState<View>("month");
 
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -104,11 +106,13 @@ export default function CalendarPage() {
 
       pregnancies?.forEach((p: any) => {
         if (p.estimated_due_date) {
+          // יצירת תאריך מקומי נקי כדי למנוע קפיצה ליום קודם בגלל UTC
+          const d = new Date(p.estimated_due_date);
           calendarEvents.push({
             id: `birth-${p.id}`,
             title: `תל"מ: ${p.profiles.full_name}`,
-            start: new Date(p.estimated_due_date),
-            end: new Date(p.estimated_due_date),
+            start: d,
+            end: d,
             allDay: true,
             type: "birth_date",
             pregnancy_id: p.id,
@@ -117,11 +121,12 @@ export default function CalendarPage() {
       });
 
       pregEvents?.forEach((e: any) => {
+        const d = new Date(e.event_date);
         calendarEvents.push({
           id: e.id,
           title: e.title,
-          start: new Date(e.event_date),
-          end: new Date(new Date(e.event_date).getTime() + 60 * 60 * 1000),
+          start: d,
+          end: new Date(d.getTime() + 60 * 60 * 1000),
           type: "meeting",
           pregnancy_id: e.pregnancy_id,
           content: e.content,
@@ -130,29 +135,26 @@ export default function CalendarPage() {
 
       setEvents(calendarEvents);
     } catch (error) {
-      console.error(error);
+      console.error("Calendar fetch error:", error);
       toast.error("שגיאה בטעינת נתונים");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Helpers ---
-  const openAddModal = (dateToUse?: Date) => {
+  const openAddModal = (dateToUse: Date = new Date()) => {
     setIsEditing(false);
     setSelectedEventId(null);
-    const baseDate = dateToUse || new Date();
+    const baseDate = new Date(dateToUse);
     baseDate.setMinutes(0);
-    const startDateStr = format(baseDate, "yyyy-MM-dd'T'HH:mm");
-    const endDateStr = format(
-      new Date(baseDate.getTime() + 60 * 60 * 1000),
-      "yyyy-MM-dd'T'HH:mm",
-    );
 
     setFormData({
       title: "",
-      start: startDateStr,
-      end: endDateStr,
+      start: format(baseDate, "yyyy-MM-dd'T'HH:mm"),
+      end: format(
+        new Date(baseDate.getTime() + 60 * 60 * 1000),
+        "yyyy-MM-dd'T'HH:mm",
+      ),
       pregnancy_id: "",
       content: "",
     });
@@ -225,49 +227,61 @@ export default function CalendarPage() {
     }
   };
 
-  // --- Logic for Mobile View Indicators ---
-  // מחלץ מערך של תאריכים שיש בהם אירועים
-  const daysWithEvents = events.map((e) => e.start as Date);
+  // סינון אירועים ליום הנבחר - השוואה לפי תחילת יום למניעת באגים
+  const selectedDayEvents = useMemo(() => {
+    return events
+      .filter((e) =>
+        isSameDay(startOfDay(e.start as Date), startOfDay(selectedDate)),
+      )
+      .sort(
+        (a, b) => (a.start as Date).getTime() - (b.start as Date).getTime(),
+      );
+  }, [events, selectedDate]);
 
-  const selectedDayEvents = events
-    .filter((e) => isSameDay(e.start as Date, selectedDate || new Date()))
-    .sort((a, b) => (a.start as Date).getTime() - (b.start as Date).getTime());
+  const daysWithEvents = useMemo(
+    () => events.map((e) => e.start as Date),
+    [events],
+  );
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex justify-center p-20">
-        <Loader2 className="animate-spin" />
+      <div className="h-screen w-full flex items-center justify-center">
+        <Loader2 className="animate-spin w-12 h-12 text-primary" />
       </div>
     );
+  }
 
   return (
     <div
       className="p-4 h-[calc(100vh-4rem)] flex flex-col gap-4 animate-fade-in"
       dir="rtl"
     >
-      {/* Header */}
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-2xl font-bold">יומן פגישות</h1>
         <Button
           onClick={() => openAddModal(selectedDate)}
           className="gradient-warm gap-2 shadow-sm"
         >
-          <Plus className="w-4 h-4" />{" "}
+          <Plus className="w-4 h-4" />
           <span className="hidden md:inline">אירוע חדש</span>
         </Button>
       </div>
 
-      {/* --- Desktop View --- */}
+      {/* תצוגת דסקטופ */}
       <Card className="hidden md:block flex-1 p-4 shadow-card border-none bg-white/50">
         <BigCalendar
           localizer={localizer}
           events={events}
+          date={selectedDate}
+          onNavigate={(newDate) => setSelectedDate(newDate)}
+          view={view}
+          onView={(newView) => setView(newView)}
           startAccessor="start"
           endAccessor="end"
           style={{ height: "100%" }}
           culture="he"
           selectable
-          onSelectSlot={(slot) => openAddModal(slot.start)}
+          onSelectSlot={(slot) => setSelectedDate(slot.start)}
           onSelectEvent={openEditModal}
           messages={{
             next: "הבא",
@@ -290,17 +304,16 @@ export default function CalendarPage() {
         />
       </Card>
 
-      {/* --- Mobile View --- */}
-      <div className="md:hidden flex flex-col gap-4 h-full">
-        <Card className="border-none shadow-sm">
+      {/* תצוגת מובייל */}
+      <div className="md:hidden flex flex-col gap-4 h-full min-h-0">
+        <Card className="border-none shadow-sm shrink-0">
           <CardContent className="p-0 flex justify-center">
             <Calendar
               mode="single"
               selected={selectedDate}
-              onSelect={setSelectedDate}
+              onSelect={(date) => date && setSelectedDate(date)}
               locale={he}
               className="rounded-md border-none"
-              // --- כאן הקסם: סימון ימים עם אירועים ---
               modifiers={{ hasEvent: daysWithEvents }}
               modifiersClassNames={{
                 hasEvent:
@@ -310,9 +323,9 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
-        <div className="flex-1 overflow-y-auto space-y-3 pb-20">
-          <h3 className="font-bold text-muted-foreground text-sm px-2">
-            אירועים ל-{selectedDate ? format(selectedDate, "dd/MM/yyyy") : ""}
+        <div className="flex-1 overflow-y-auto space-y-3 pb-20 custom-scrollbar">
+          <h3 className="font-bold text-muted-foreground text-sm px-2 sticky top-0 bg-background/80 backdrop-blur py-1 z-10">
+            אירועים ל-{format(selectedDate, "dd/MM/yyyy")}
           </h3>
 
           {selectedDayEvents.length === 0 ? (
@@ -336,8 +349,7 @@ export default function CalendarPage() {
                   <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {format(event.start as Date, "HH:mm")} -{" "}
-                      {format(event.end as Date, "HH:mm")}
+                      {format(event.start as Date, "HH:mm")}
                     </span>
                   </div>
                 </div>
@@ -348,7 +360,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* --- Dialog (אותו דיאלוג לכולם) --- */}
+      {/* דיאלוג הוספה/עריכה */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           dir="rtl"
@@ -358,8 +370,11 @@ export default function CalendarPage() {
             <DialogTitle>
               {isEditing ? "עריכת אירוע" : "הוספת אירוע חדש"}
             </DialogTitle>
+            <DialogDescription>
+              הזיני את פרטי המפגש עם היולדת.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 text-right">
             <div className="space-y-2">
               <Label>יולדת</Label>
               <Select
@@ -368,10 +383,10 @@ export default function CalendarPage() {
                   setFormData({ ...formData, pregnancy_id: val })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-right">
                   <SelectValue placeholder="בחר יולדת" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent dir="rtl">
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.profiles.full_name}
@@ -434,7 +449,7 @@ export default function CalendarPage() {
                 ביטול
               </Button>
               <Button onClick={handleSave} className="gradient-warm text-white">
-                <Save className="w-4 h-4 ml-2" /> שמירה
+                שמירה
               </Button>
             </div>
           </DialogFooter>
