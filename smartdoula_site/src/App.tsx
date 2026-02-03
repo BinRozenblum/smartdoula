@@ -29,6 +29,8 @@ import PaymentsPage from "./pages/doula/PaymentsPage";
 
 import DoulaExplorerPage from "./pages/public/DoulaExplorerPage";
 
+import CompleteProfile from "./pages/CompleteProfile"; // <--- הוסף את זה
+
 import { useMobilePushToken } from "@/hooks/useMobilePushToken"; // <--- הוסף את זה
 
 const queryClient = new QueryClient();
@@ -44,6 +46,7 @@ const App = () => {
           {/* 1. דפים ציבוריים */}
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/invite" element={<InviteRegister />} />
+          <Route path="/complete-profile" element={<CompleteProfile />} />
 
           <Route path="/explore" element={<DoulaExplorerPage />} />
           {/* 2. ניתוב ראשי חכם */}
