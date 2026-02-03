@@ -1,22 +1,39 @@
 import { useEffect, useState } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Phone,
+  MessageCircle,
+  Heart,
+  Loader2,
+  UserPlus,
+  Sparkles,
+} from "lucide-react";
+import { toast } from "sonner";
 import { WeeklyProgress } from "../../components/dashboard/WeeklyProgress";
 import { ContractionTimer } from "../../components/dashboard/ContractionTimer";
 import { AlertsWidget } from "../../components/dashboard/AlertsWidget";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Phone, MessageCircle, Heart, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 export function MotherDashboard() {
   const { profile } = useOutletContext<{ profile: any }>();
   const navigate = useNavigate();
 
-  // State
   const [pregnancyData, setPregnancyData] = useState<any>(null);
   const [doulaProfile, setDoulaProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // State לחיבור דולה חדשה
+  const [doulaCode, setDoulaCode] = useState("");
+  const [linking, setLinking] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -24,50 +41,71 @@ export function MotherDashboard() {
 
   const fetchData = async () => {
     try {
-      // 1. שליפת פרטי הריון פעיל (כולל חיבור לדולה)
+      setLoading(true);
       const { data: preg, error } = await supabase
         .from("pregnancies")
-        .select("*, doula:doula_id(*)") // שואבים גם את פרטי הדולה דרך ה-Join
+        .select("*, doula:doula_id(*)")
         .eq("mother_id", profile.id)
         .eq("is_active", true)
-        .maybeSingle(); // maybeSingle מונע שגיאה אם אין תוצאה
+        .maybeSingle();
 
       if (error) throw error;
 
       if (preg) {
         setPregnancyData(preg);
-
-        // אם ה-Join עבד, preg.doula יכיל את המידע.
-        // אם לא, ננסה לשלוף ידנית (גיבוי למקרה שה-Types לא מסתדרים)
-        if (preg.doula) {
-          setDoulaProfile(preg.doula);
-        } else if (preg.doula_id) {
-          const { data: dData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", preg.doula_id)
-            .single();
-          setDoulaProfile(dData);
-        }
+        setDoulaProfile(preg.doula);
       }
     } catch (err: any) {
       console.error("Error fetching dashboard data:", err);
-      // לא מקפיצים Toast כדי לא להציק למשתמש בכניסה
     } finally {
       setLoading(false);
     }
   };
 
-  // חישוב שבוע נוכחי
-  const calculateWeek = () => {
-    if (!pregnancyData?.estimated_due_date) return 0;
-    const due = new Date(pregnancyData.estimated_due_date).getTime();
-    const now = new Date().getTime();
-    const diffWeeks = Math.floor((due - now) / (1000 * 60 * 60 * 24 * 7));
-    return Math.max(0, 40 - diffWeeks);
-  };
+  // ... (בתוך handleConnectDoula)
+  const handleConnectDoula = async () => {
+    const cleanCode = doulaCode.trim().toUpperCase(); // הפיכה לאותיות גדולות
+    if (!cleanCode) {
+      toast.error("נא להזין קוד דולה");
+      return;
+    }
 
-  const currentWeek = calculateWeek();
+    setLinking(true);
+    try {
+      // 1. חיפוש הדולה לפי הקוד הקצר
+      const { data: doula, error: doulaErr } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("doula_link_code", cleanCode) // חיפוש לפי השדה החדש
+        .eq("role", "doula")
+        .maybeSingle();
+
+      if (doulaErr || !doula) {
+        toast.error("קוד לא תקין. ודאי שהקוד שהזנת מדויק.");
+        return;
+      }
+
+      // 2. יצירת היריון חדש מחובר ל-ID של הדולה שמצאנו
+      const { error: insertErr } = await supabase.from("pregnancies").insert({
+        mother_id: profile.id,
+        doula_id: doula.id, // משתמשים ב-UUID האמיתי שמצאנו
+        is_active: true,
+        estimated_due_date: new Date(Date.now() + 280 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+      });
+
+      if (insertErr) throw insertErr;
+
+      toast.success(`שורתם בהצלחה לדולה ${doula.full_name}!`);
+      fetchData();
+    } catch (err: any) {
+      console.error(err);
+      toast.error("שגיאה בתהליך החיבור");
+    } finally {
+      setLinking(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -77,12 +115,74 @@ export function MotherDashboard() {
     );
   }
 
+  // --- מצב שבו האמא לא מחוברת לדולה ---
+  if (!pregnancyData) {
+    return (
+      <div
+        className="p-4 max-w-2xl mx-auto space-y-8 animate-fade-in text-right"
+        dir="rtl"
+      >
+        <header className="text-center space-y-4">
+          <div className="mx-auto w-20 h-20 gradient-warm rounded-full flex items-center justify-center shadow-soft">
+            <Sparkles className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold">
+            ברוכה הבאה, {profile.full_name}!
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            כדי להתחיל את המעקב ולשתף נתונים עם הדולה שלך, אנחנו צריכים לחבר
+            ביניכן.
+          </p>
+        </header>
+
+        <Card className="border-none shadow-hover bg-white/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="text-primary" /> חיבור לדולה
+            </CardTitle>
+            <CardDescription>
+              בקשי מהדולה שלך את "קוד הדולה" שלה (מזהה הפרופיל שלה) והדביקי אותו
+              כאן.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                placeholder="הדביקי כאן את הקוד..."
+                value={doulaCode}
+                onChange={(e) => setDoulaCode(e.target.value)}
+                className="text-center font-mono"
+              />
+            </div>
+            <Button
+              onClick={handleConnectDoula}
+              disabled={linking}
+              className="w-full gradient-warm text-white h-12 text-lg font-bold"
+            >
+              {linking ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                "התחברי לדולה שלי"
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <p className="text-center text-sm text-muted-foreground">
+          אין לך דולה? את עדיין יכולה להשתמש בטיימר הצירים באופן מקומי, אך
+          הנתונים לא יישלחו לאף אחד.
+        </p>
+      </div>
+    );
+  }
+
+  // --- מצב רגיל (כבר מחוברת לדולה) ---
   return (
     <div
       className="p-4 md:p-8 space-y-8 animate-fade-in max-w-6xl mx-auto"
       dir="rtl"
     >
-      {/* --- Header & Greeting --- */}
+      {/* ... (שאר הקוד הקיים של ה-Dashboard נשאר אותו דבר) */}
       <header className="space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -91,123 +191,92 @@ export function MotherDashboard() {
               <Heart className="text-pink-400 fill-pink-400 w-6 h-6 animate-pulse" />
             </h1>
             <p className="text-muted-foreground mt-1">
-              {currentWeek > 0
-                ? `שבוע ${currentWeek} להריון`
-                : "ברוכה הבאה ל-SmartDoula"}
+              שבוע{" "}
+              {Math.max(
+                1,
+                40 -
+                  Math.floor(
+                    (new Date(pregnancyData.estimated_due_date).getTime() -
+                      Date.now()) /
+                      (1000 * 60 * 60 * 24 * 7),
+                  ),
+              )}{" "}
+              להריון
             </p>
           </div>
-
-          {/* לחצני קשר מהירים עם הדולה */}
           {doulaProfile && (
             <div className="flex gap-3 w-full md:w-auto">
-              <a
-                href={`https://wa.me/${doulaProfile.phone?.replace(/\D/g, "")}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 md:flex-none"
+              <Button
+                variant="outline"
+                className="flex-1 md:flex-none gap-2 border-green-200 text-green-700"
+                onClick={() =>
+                  window.open(
+                    `https://wa.me/${doulaProfile.phone?.replace(/\D/g, "")}`,
+                  )
+                }
               >
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 border-green-200 text-green-700 hover:bg-green-50 shadow-sm"
-                >
-                  <MessageCircle className="w-4 h-4" /> ווטסאפ לדולה
-                </Button>
-              </a>
-              <a
-                href={`tel:${doulaProfile.phone}`}
-                className="flex-1 md:flex-none"
+                <MessageCircle className="w-4 h-4" /> ווטסאפ
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1 md:flex-none gap-2"
+                onClick={() =>
+                  (window.location.href = `tel:${doulaProfile.phone}`)
+                }
               >
-                <Button
-                  variant="destructive"
-                  className="w-full gap-2 shadow-sm bg-red-500 hover:bg-red-600"
-                >
-                  <Phone className="w-4 h-4" /> SOS לדולה
-                </Button>
-              </a>
+                <Phone className="w-4 h-4" /> SOS
+              </Button>
             </div>
           )}
         </div>
-
-        {/* --- המסר היומי מהדולה --- */}
-        {doulaProfile?.daily_broadcast_message && (
-          <div className="bg-gradient-to-br from-peach-light/40 to-white p-6 rounded-2xl border-r-4 border-peach shadow-sm relative overflow-hidden">
-            <div className="relative z-10">
-              <p className="text-lg md:text-xl font-medium text-foreground/90 italic leading-relaxed">
-                "{doulaProfile.daily_broadcast_message}"
-              </p>
-              <div className="flex items-center gap-2 mt-3">
-                {doulaProfile.avatar_url && (
-                  <img
-                    src={doulaProfile.avatar_url}
-                    alt="Doula"
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                )}
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                  – {doulaProfile.full_name}, הדולה שלך
-                </span>
-              </div>
-            </div>
-            {/* קישוט רקע */}
-            <Heart className="absolute -left-4 -bottom-4 w-32 h-32 text-peach/10 -rotate-12 z-0" />
-          </div>
-        )}
       </header>
 
-      {/* --- Main Content Grid --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* עמודה מרכזית רחבה */}
         <div className="lg:col-span-2 space-y-8">
-          {/* סרגל התקדמות שבועי */}
           <WeeklyProgress
-            currentWeek={currentWeek || 0}
-            className="py-8 bg-white/60 backdrop-blur-sm border-none shadow-soft"
+            currentWeek={Math.max(
+              1,
+              40 -
+                Math.floor(
+                  (new Date(pregnancyData.estimated_due_date).getTime() -
+                    Date.now()) /
+                    (1000 * 60 * 60 * 24 * 7),
+                ),
+            )}
           />
-
-          {/* כרטיסי מידע וקישורים */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card
-              className="bg-white hover:shadow-hover transition-all cursor-pointer border-none shadow-card group"
-              onClick={() => navigate("/mother/settings")} // לדוגמה לתוכנית לידה
+              className="cursor-pointer hover:shadow-md transition-all"
+              onClick={() => navigate("/mother/contractions")}
             >
-              <CardContent className="p-6 flex flex-col items-center text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-sage/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Heart className="w-6 h-6 text-sage" />
+              <CardContent className="p-6 text-center space-y-2">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                  <Heart className="text-primary" />
                 </div>
-                <h3 className="font-bold text-lg">תוכנית לידה</h3>
-                <p className="text-sm text-muted-foreground">
-                  המכתב שלך לצוות הרפואי. ניתן לערוך ולשתף בכל רגע.
+                <h3 className="font-bold">טיימר צירים</h3>
+                <p className="text-xs text-muted-foreground">
+                  לחצי כאן לתזמון בזמן אמת
                 </p>
               </CardContent>
             </Card>
-
-            <Card className="bg-white hover:shadow-hover transition-all border-none shadow-card">
-              <CardContent className="p-6 flex flex-col items-center text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-peach/20 flex items-center justify-center">
-                  <Phone className="w-6 h-6 text-terracotta" />
+            <Card
+              className="cursor-pointer hover:shadow-md transition-all"
+              onClick={() => navigate("/mother/settings")}
+            >
+              <CardContent className="p-6 text-center space-y-2">
+                <div className="w-12 h-12 bg-sage/10 rounded-full flex items-center justify-center mx-auto">
+                  <UserPlus className="text-sage" />
                 </div>
-                <h3 className="font-bold text-lg">אנשי קשר</h3>
-                <p className="text-sm text-muted-foreground">
-                  {doulaProfile
-                    ? `${doulaProfile.full_name} זמינה עבורך.`
-                    : "עדיין לא קושרה דולה."}
-                  <br />
-                  {pregnancyData?.hospital_primary &&
-                    `רשום ביה"ח: ${pregnancyData.hospital_primary}`}
+                <h3 className="font-bold">פרטים רפואיים</h3>
+                <p className="text-xs text-muted-foreground">
+                  עדכון תל"מ ותוכנית לידה
                 </p>
               </CardContent>
             </Card>
           </div>
         </div>
-
-        {/* עמודה צדדית: טיימר והתראות */}
         <div className="space-y-8">
-          {/* ווידג'ט טיימר (גרסה מקוצרת אם רוצים, או המלא) */}
-          <div className="relative">
-            <div className="absolute -inset-1 bg-gradient-to-r from-pink-200 to-peach-200 rounded-[20px] blur opacity-30"></div>
-            <ContractionTimer />
-          </div>
-
+         
           <AlertsWidget />
         </div>
       </div>

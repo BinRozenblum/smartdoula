@@ -53,7 +53,7 @@ export function DoulaDashboard() {
             full_name,
             avatar_url
           )
-        `
+        `,
         )
         .eq("doula_id", profile.id)
         .eq("is_active", true);
@@ -65,7 +65,7 @@ export function DoulaDashboard() {
         const dueDate = new Date(item.estimated_due_date);
         const today = new Date();
         const diffWeeks = Math.floor(
-          (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 7)
+          (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 7),
         );
         const currentWeek = 40 - diffWeeks;
 
@@ -74,7 +74,7 @@ export function DoulaDashboard() {
           name: item.profiles.full_name,
           week: currentWeek,
           dueDate: new Date(item.estimated_due_date).toLocaleDateString(
-            "he-IL"
+            "he-IL",
           ),
           location: item.hospital_preference || "לא נקבע",
           status: currentWeek >= 38 ? "approaching" : "active", // לוגיקה פשוטה לסטטוס
@@ -108,7 +108,7 @@ export function DoulaDashboard() {
               onClick: () => navigate(`/doula/live-monitor/${pregnancyId}`),
             },
           });
-        }
+        },
       )
       .subscribe();
 
@@ -153,13 +153,17 @@ export function DoulaDashboard() {
             צירוף יולדת חדשה
           </Button> */}
 
+          <span className="text-lg font-mono font-black text-primary tracking-widest">
+            {profile?.doula_link_code || "---"}
+          </span>
+
           <Button
             onClick={handleCopyInvite}
             className={cn(
               "w-full gap-2 font-bold transition-all duration-300 shadow-md h-12 rounded-xl",
               copied
                 ? "bg-sage text-white"
-                : "gradient-warm text-white hover:opacity-90"
+                : "gradient-warm text-white hover:opacity-90",
             )}
           >
             {copied ? (
@@ -232,7 +236,7 @@ export function DoulaDashboard() {
                   "px-4 py-1.5 text-xs font-bold rounded-lg transition-all",
                   filter === "all"
                     ? "bg-white shadow-sm"
-                    : "text-muted-foreground"
+                    : "text-muted-foreground",
                 )}
               >
                 הכל
@@ -243,7 +247,7 @@ export function DoulaDashboard() {
                   "px-4 py-1.5 text-xs font-bold rounded-lg transition-all",
                   filter === "approaching"
                     ? "bg-white shadow-sm text-terracotta"
-                    : "text-muted-foreground"
+                    : "text-muted-foreground",
                 )}
               >
                 קרוב ללידה

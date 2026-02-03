@@ -8,6 +8,8 @@ interface WeeklyProgressProps {
 export function WeeklyProgress({ currentWeek, className }: WeeklyProgressProps) {
   const trimester = currentWeek <= 12 ? 1 : currentWeek <= 27 ? 2 : 3;
   const progress = (currentWeek / 40) * 100;
+  console.log(currentWeek);
+  console.log(progress);
 
   const milestones = [
     { week: 12, label: "סיום טרימסטר 1" },
